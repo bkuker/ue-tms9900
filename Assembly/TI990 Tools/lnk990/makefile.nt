@@ -2,7 +2,12 @@ CPU = i386
 MAKECPU = /D_X86_
 PCPU = /G3
 
-!include <ntwin32.mak>
+#!include <ntwin32.mak>
+
+cc=cl
+link=link
+cflags=/nologo /W3 /DWIN32 /D_WINDOWS /D_CRT_SECURE_NO_WARNINGS
+lflags=/nologo /SUBSYSTEM:WINDOWS
 
 CFLAGS = /nologo /D_WIN32 /DWIN32 /W3 /Zi /MD $(PCPU)
 

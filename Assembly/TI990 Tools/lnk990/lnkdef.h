@@ -20,6 +20,8 @@
 
 #include <stdio.h>
 
+typedef __int64 off_t;
+
 /*
 ** Definitions
 */
