@@ -1,20 +1,13 @@
 import {Log} from '../../classes/log';
-import {Keyboard} from './keyboard';
-import {Tape} from './tape';
-import {Stateful} from '../interfaces/stateful';
 import {Util} from '../../classes/util';
 import {CPU} from '../interfaces/cpu';
-import {Console} from '../interfaces/console';
 import {CRUDevice} from "../interfaces/cru-device";
 
-export class CRU implements Stateful {
+export class CRU {
 
     static TIMER_CYCLES_PER_DECREMENT = 64;
 
-    private console: Console;
-    private keyboard: Keyboard;
-    private tape: Tape;
-    private cpu: CPU;
+
 
     private cru: boolean[];
     private timerMode: boolean;
@@ -28,17 +21,16 @@ export class CRU implements Stateful {
 
     private log: Log = Log.getLog();
 
-    constructor(console: Console) {
-        this.console = console;
+    constructor() {
         this.init();
     }
 
     private init() {
-        this.console.cyclesPassed().subscribe(
+        /*this.console.cyclesPassed().subscribe(
             (cycles) => {
                 this.decrementTimer(cycles / CRU.TIMER_CYCLES_PER_DECREMENT);
             }
-        );
+        );*/
     }
 
     public registerCruDevice(cruDevice: CRUDevice) {
@@ -55,10 +47,6 @@ export class CRU implements Stateful {
     }
 
     public reset() {
-        this.keyboard = this.console.getKeyboard();
-        this.tape = this.console.getTape();
-        this.cpu = this.console.getCPU();
-
         this.vdpInterrupt = false;
         this.timerMode = false;
         this.clockRegister = 0;
@@ -84,12 +72,6 @@ export class CRU implements Stateful {
                 if (addr === 2) {
                     // VDP interrupt
                     return !this.vdpInterrupt;
-                } else if (addr >= 3 && addr <= 10) {
-                    // Keyboard
-                    return this.readBitKeyboard(addr);
-                } else if (addr === 27) {
-                    // Cassette
-                    return this.tape.read() === 1;
                 }
             }
         } else {
@@ -114,12 +96,6 @@ export class CRU implements Stateful {
                 this.setTimerMode(value);
             } else if (addr === 3) {
                 this.timerInterrupt = false;
-            } else if (addr === 22) {
-                this.tape.setMotorOn(value);
-            } else if (addr === 24) {
-                this.tape.setAudioGate(value, this.cpu.getCycles());
-            } else if (addr === 25) {
-                this.tape.write(value, this.timerInterruptCount);
             }
         } else {
             // DSR space
@@ -131,16 +107,6 @@ export class CRU implements Stateful {
             }
         }
         this.cru[addr] = value;
-    }
-
-    readBitKeyboard(addr: number): boolean {
-        const col = (this.cru[18] ? 1 : 0) | (this.cru[19] ? 2 : 0) | (this.cru[20] ? 4 : 0);
-        // this.log.info("Addr: " + addr + " Col: " + col + " Down: " + this.keyboard.isKeyDown(col, addr));
-        if (addr === 7 && !this.cru[21]) {
-            return !this.keyboard.isAlphaLockDown();
-        } else {
-            return !(this.keyboard.isKeyDown(col, addr));
-        }
     }
 
     readBitTimerMode(addr: number): boolean {
@@ -225,37 +191,4 @@ export class CRU implements Stateful {
             (this.isTimerInterrupt() ? "Tint " : "    ")  + (this.isVDPInterrupt() ? "Vint" : "   ");
     }
 
-    getState(): object {
-        return {
-            cru: this.cru,
-            vdpInterrupt: this.vdpInterrupt,
-            timerMode: this.timerMode,
-            clockRegister: this.clockRegister,
-            readRegister: this.readRegister,
-            decrementer: this.decrementer,
-            timerInterrupt: this.timerInterrupt,
-            timerInterruptCount: this.timerInterruptCount,
-            cruDevices: this.cruDevices.map(cruDevice => cruDevice.getId())
-        };
-    }
-
-    restoreState(state: any) {
-        this.cru = state.cru;
-        this.vdpInterrupt = state.vdpInterrupt;
-        this.timerMode = state.timerMode;
-        this.clockRegister = state.clockRegister;
-        this.readRegister = state.readRegister;
-        this.decrementer = state.decrementer;
-        this.timerInterrupt = state.timerInterrupt;
-        this.timerInterruptCount = state.timerInterruptCount;
-        if (state.cruDevices) {
-            this.cruDevices = [];
-            state.cruDevices.forEach((id: string) => {
-                const cruDevice = this.console.getMemory().getCardById(id);
-                if (cruDevice) {
-                    this.cruDevices.push(cruDevice);
-                }
-            });
-        }
-    }
 }

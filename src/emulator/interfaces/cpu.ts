@@ -1,8 +1,8 @@
-import {Stateful} from './stateful';
+
 import {Observable} from "rxjs";
 import {Breakpoint} from "../../classes/breakpoint";
 
-export interface CPU extends Stateful {
+export interface CPU {
     reset(): void;
     run(cycles: number, skipBreakpoint?: boolean): number;
     getPc(): number;

@@ -1488,32 +1488,4 @@ export abstract class CPUCommon implements CPU {
         return s;
     }
 
-    getState(): any {
-        return {
-            pc: this.pc,
-            wp: this.wp,
-            st: this.st,
-            flagX: this.flagX,
-            cycles: this.cycles,
-            breakpoints: this.breakpoints,
-            auxBreakpoint: this.auxBreakpoint,
-            illegalCount: this.illegalCount,
-            cycleCountStart: this.cycleCountStart,
-            cycleCountEnd: this.cycleCountEnd
-        };
-    }
-
-    restoreState(state: any) {
-        this.pc = state.pc;
-        this.log.info("PC restored to " + Util.toHexWord(this.pc));
-        this.wp = state.wp;
-        this.st = state.st;
-        this.flagX = state.flagX;
-        this.cycles = state.cycles;
-        this.breakpoints = state.breakpoints;
-        this.auxBreakpoint = state.auxBreakpoint;
-        this.illegalCount = state.illegalCount;
-        this.cycleCountStart = state.cycleCountStart;
-        this.cycleCountEnd = state.cycleCountEnd;
-    }
 }

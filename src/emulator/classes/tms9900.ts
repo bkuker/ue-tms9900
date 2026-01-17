@@ -3,9 +3,7 @@ import {Util} from '../../classes/util';
 import {Memory} from './memory';
 import {CPU} from '../interfaces/cpu';
 import {Opcode} from "../../classes/opcode";
-import {Disassembler} from "../../classes/disassembler";
 import {CPUCommon} from "./cpu-common";
-import {Console} from "../interfaces/console";
 
 export class TMS9900 extends CPUCommon implements CPU {
 
@@ -13,7 +11,6 @@ export class TMS9900 extends CPUCommon implements CPU {
     static readonly CYCLES_PER_SCANLINE = 194; // 50,000 / 194 = 258 lines on the screen.
     static readonly PROFILE = false;
 
-    private console: Console;
     private memory: Memory;
     private cru: CRU;
 
@@ -22,12 +19,11 @@ export class TMS9900 extends CPUCommon implements CPU {
     private profile: Uint32Array;
     private countStart: number;
     private maxCount: number;
-    private disassembler: Disassembler;
 
-    constructor(console: Console) {
+    constructor(memory: Memory, cru: CRU) {
         super();
-        this.console = console;
-        this.disassembler = new Disassembler();
+        this.memory = memory;
+        this.cru = cru;
         this.addSpecialInstructions();
     }
 
@@ -38,8 +34,7 @@ export class TMS9900 extends CPUCommon implements CPU {
     }
 
     reset() {
-        this.memory = this.console.getMemory();
-        this.cru = this.console.getCRU();
+
 
         this.pc = 0;
         this.wp = 0;
@@ -63,7 +58,6 @@ export class TMS9900 extends CPUCommon implements CPU {
 
         this.suspended = false;
 
-        this.disassembler.setMemory(this.console.getMemory());
         this.cycleLog = new Int32Array(0x10000);
     }
 
@@ -94,7 +88,7 @@ export class TMS9900 extends CPUCommon implements CPU {
                 const instrCycles = this.getCycles() - tmpCycles;
                 this.cycleLog[tmpPC] = instrCycles;
                 if (this.tracing) {
-                    this.log.info(Util.padr(this.disassembler.disassembleInstruction(tmpPC), ' ', 40) + instrCycles);
+                    //this.log.info(Util.padr(this.disassembler.disassembleInstruction(tmpPC), ' ', 40) + instrCycles);
                 }
                 // Execute interrupt routine
                 if (this.getInterruptMask() >= 1 && (this.cru.isVDPInterrupt() || this.cru.isTimerInterrupt())) {
@@ -368,14 +362,4 @@ export class TMS9900 extends CPUCommon implements CPU {
         }
     }
 
-    override getState(): any {
-        const state = super.getState();
-        state.suspended = this.suspended;
-        return state;
-    }
-
-    override restoreState(state: any) {
-        super.restoreState(state);
-        this.suspended = state.suspended;
-    }
 }

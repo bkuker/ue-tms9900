@@ -52,12 +52,14 @@ async function main(): Promise<void> {
 
     const romA = fs.openSync(`${baseName}.a.rom`, "w");
     const romB = fs.openSync(`${baseName}.b.rom`, "w");
+    const rom = fs.openSync(`${baseName}.rom`, "w");
 
     const bin = fs.openSync(aout, "r");
     const buffer = Buffer.alloc(1);
     let position = 0;
     while (fs.readSync(bin, buffer, 0, 1, null) > 0) {
         if (position >= 16) {
+            fs.writeSync(rom, buffer, 0, 1);
             if (position % 2 == 0)
                 fs.writeSync(romA, buffer, 0, 1);
             else
@@ -68,6 +70,7 @@ async function main(): Promise<void> {
 
     fs.closeSync(romA);
     fs.closeSync(romB);
+    fs.closeSync(rom);
 }
 
 

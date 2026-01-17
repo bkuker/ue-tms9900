@@ -1,5 +1,3 @@
-import {DialogService} from "../services/dialog.service";
-
 export enum LogLevel {
     DEBUG = 0,
     INFO = 1,
@@ -108,7 +106,7 @@ export class Log {
      */
     error(message: string) {
         if (LogLevel.ERROR >= this.minLevel) {
-            DialogService.showErrorDialog(message);
+            console.error(message);
         }
     }
 

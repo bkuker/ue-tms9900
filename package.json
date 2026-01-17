@@ -1,18 +1,19 @@
 {
   "name": "ue2-tms9900",
   "version": "1.0.0",
-  "description": "UE TMS 990 Emulator",
-  "scripts": {
-    "asm": "ts-node src/asm.ts"
-  },
-  "type": "module",
   "author": "Bill Kuker",
   "license": "MIT",
+  "scripts": {
+    "asm": "ts-node src/asm.ts",
+    "emu": "ts-node src/emu.ts"
+  },
   "dependencies": {
-    "@types/node": "^22.15.17",
     "commander": "^14.0.2",
-    "rxjs": "^7.8.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "@types/node": "^22.15.17"
   }
 }
