@@ -1,0 +1,32 @@
+CPU = i386
+MAKECPU = /D_X86_
+PCPU = /G3
+
+!include <ntwin32.mak>
+
+CFLAGS = /nologo /D_WIN32 /DWIN32 /W3 /Zi /MD $(PCPU)
+
+ASMOBJS = asm990.obj asmpass0.obj asmpass1.obj asmpass2.obj asmoptab.obj \
+	asmsupt.obj parser.obj ibmstrtod.obj ibmfloat.obj
+
+all: asm990.exe
+
+asm990.exe: $(ASMOBJS)
+	link $(ASMOBJS) /nologo /SUBSYSTEM:console \
+	netapi32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib \
+	        shell32.lib wsock32.lib
+
+
+clean:
+	del $(ASMOBJS) asm990.exe
+	del *.bin *.lst
+
+asm990.obj: asm990.c asmdef.h asm990.tok asm990.err
+asmpass0.obj: asmpass0.c asmdef.h asm990.tok
+asmpass1.obj: asmpass1.c asmdef.h asm990.tok
+asmpass2.obj: asmpass2.c asmdef.h asm990.tok
+asmoptab.obj: asmoptab.c asmdef.h asm990.tok
+asmsupt.obj: asmsupt.c asmdef.h asm990.tok
+parser.obj: parser.c errors.h stables.h scanner.h asmdef.h asm990.ptb asm990.sem
+ibmstrtod.obj: ibmstrtod.c ibmfloat.h
+ibmfloat.obj: ibmfloat.c ibmfloat.h

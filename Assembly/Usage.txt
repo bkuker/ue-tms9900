@@ -1,0 +1,35 @@
+https://www.cozx.com/dpitts/ti990.html
+Using Dave Pitts' TI-990 Tools
+
+./asm990 -l file.lst -o file.obj file.asm
+     > Generates a listing and an object file
+
+cat test.lst
+     > Shows the contents of the assembly listing
+
+cat test.obj
+     > Shows the contents of the object file
+     > Notably, the object file is a text file
+
+./lnk990 -a -o file_o.obj file.obj
+     > The -a option is crucial, this generates a binary file
+     > It generates a 16-byte header we need to get rid of
+     > This file is now a binary
+
+hexdump -C file_o.obj
+     > Displays the binary of the object file
+
+dd if=file_o.obj of=file.bin bs=16 skip=1
+     > Low level copy program
+     > Copies if to of and skips a block of 16 bytes
+
+hexdump -C file.bin
+     > Displays the binary of the final ROM file
+
+srec_cat -o file_low.bin -binary test.bin -binary -split 2 1
+srec_cat -o file_high.bin -binary test.bin -binary -split 2 0
+     > Splits the BIN into high and low bytes
+
+hexdump -C file_high.bin
+hexdump -C file_low.bin
+     > View the split binary files

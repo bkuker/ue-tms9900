@@ -1,0 +1,16 @@
+#define EOS       3
+#define OR        7
+#define AND       8
+#define NOT       10
+#define EQ        12
+#define NE        13
+#define LE        14
+#define LT        15
+#define GE        16
+#define GT        17
+#define RTSHIFT   23
+#define HEXNUM    27
+#define DECNUM    28
+#define STRING    29
+#define PC        30
+#define SYM       31

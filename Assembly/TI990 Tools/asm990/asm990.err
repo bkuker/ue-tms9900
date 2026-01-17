@@ -1,0 +1,165 @@
+case 1:
+   strcpy (errorstring, "Missing NOT, '-', '+', '(', HEXNUM, DECNUM, STRING, PC, SYM, ");
+   break;
+case 2:
+   strcpy (errorstring, "Missing EOS, ");
+   break;
+case 3:
+   strcpy (errorstring, "Missing OR, AND, ");
+   break;
+case 4:
+   strcpy (errorstring, "Missing '-', '+', '*', '/', RTSHIFT, OR, AND, EQ, NE, LE, LT, GE, GT, ");
+   break;
+case 5:
+   strcpy (errorstring, "Missing ");
+   break;
+case 6:
+   strcpy (errorstring, "Missing ");
+   break;
+case 7:
+   strcpy (errorstring, "Missing '(', HEXNUM, DECNUM, STRING, PC, SYM, ");
+   break;
+case 8:
+   strcpy (errorstring, "Missing ");
+   break;
+case 9:
+   strcpy (errorstring, "Missing ");
+   break;
+case 10:
+   strcpy (errorstring, "Missing '(', HEXNUM, DECNUM, STRING, PC, SYM, ");
+   break;
+case 11:
+   strcpy (errorstring, "Missing '(', HEXNUM, DECNUM, STRING, PC, SYM, ");
+   break;
+case 12:
+   strcpy (errorstring, "Missing '-', '+', '(', HEXNUM, DECNUM, STRING, PC, SYM, ");
+   break;
+case 13:
+   strcpy (errorstring, "Missing ");
+   break;
+case 14:
+   strcpy (errorstring, "Missing ");
+   break;
+case 15:
+   strcpy (errorstring, "Missing ");
+   break;
+case 16:
+   strcpy (errorstring, "Missing ");
+   break;
+case 17:
+   strcpy (errorstring, "Missing ");
+   break;
+case 18:
+   strcpy (errorstring, "Missing ");
+   break;
+case 19:
+   strcpy (errorstring, "Missing ");
+   break;
+case 20:
+   strcpy (errorstring, "Missing NOT, '-', '+', '(', HEXNUM, DECNUM, STRING, PC, SYM, ");
+   break;
+case 21:
+   strcpy (errorstring, "Missing NOT, '-', '+', '(', HEXNUM, DECNUM, STRING, PC, SYM, ");
+   break;
+case 22:
+   strcpy (errorstring, "Missing '-', '+', '(', HEXNUM, DECNUM, STRING, PC, SYM, ");
+   break;
+case 23:
+   strcpy (errorstring, "Missing '-', '+', '(', HEXNUM, DECNUM, STRING, PC, SYM, ");
+   break;
+case 24:
+   strcpy (errorstring, "Missing '(', HEXNUM, DECNUM, STRING, PC, SYM, ");
+   break;
+case 25:
+   strcpy (errorstring, "Missing '(', HEXNUM, DECNUM, STRING, PC, SYM, ");
+   break;
+case 26:
+   strcpy (errorstring, "Missing '(', HEXNUM, DECNUM, STRING, PC, SYM, ");
+   break;
+case 27:
+   strcpy (errorstring, "Missing '(', HEXNUM, DECNUM, STRING, PC, SYM, ");
+   break;
+case 28:
+   strcpy (errorstring, "Missing '(', HEXNUM, DECNUM, STRING, PC, SYM, ");
+   break;
+case 29:
+   strcpy (errorstring, "Missing '(', HEXNUM, DECNUM, STRING, PC, SYM, ");
+   break;
+case 30:
+   strcpy (errorstring, "Missing '-', '+', '(', HEXNUM, DECNUM, STRING, PC, SYM, ");
+   break;
+case 31:
+   strcpy (errorstring, "Missing '-', '+', '(', HEXNUM, DECNUM, STRING, PC, SYM, ");
+   break;
+case 32:
+   strcpy (errorstring, "Missing '-', '+', '(', HEXNUM, DECNUM, STRING, PC, SYM, ");
+   break;
+case 33:
+   strcpy (errorstring, "Missing '-', '+', '(', HEXNUM, DECNUM, STRING, PC, SYM, ");
+   break;
+case 34:
+   strcpy (errorstring, "Missing '-', '+', '(', HEXNUM, DECNUM, STRING, PC, SYM, ");
+   break;
+case 35:
+   strcpy (errorstring, "Missing ");
+   break;
+case 36:
+   strcpy (errorstring, "Missing ");
+   break;
+case 37:
+   strcpy (errorstring, "Missing ");
+   break;
+case 38:
+   strcpy (errorstring, "Missing ')', '-', '+', '*', '/', RTSHIFT, OR, AND, ");
+   break;
+case 39:
+   strcpy (errorstring, "Missing EQ, NE, LE, LT, GE, GT, '-', '+', '*', '/', RTSHIFT, OR, AND, ");
+   break;
+case 40:
+   strcpy (errorstring, "Missing ");
+   break;
+case 41:
+   strcpy (errorstring, "Missing ");
+   break;
+case 42:
+   strcpy (errorstring, "Missing ");
+   break;
+case 43:
+   strcpy (errorstring, "Missing ");
+   break;
+case 44:
+   strcpy (errorstring, "Missing ");
+   break;
+case 45:
+   strcpy (errorstring, "Missing ");
+   break;
+case 46:
+   strcpy (errorstring, "Missing ");
+   break;
+case 47:
+   strcpy (errorstring, "Missing ");
+   break;
+case 48:
+   strcpy (errorstring, "Missing ");
+   break;
+case 49:
+   strcpy (errorstring, "Missing ");
+   break;
+case 50:
+   strcpy (errorstring, "Missing ");
+   break;
+case 51:
+   strcpy (errorstring, "Missing ");
+   break;
+case 52:
+   strcpy (errorstring, "Missing ");
+   break;
+case 53:
+   strcpy (errorstring, "Missing ");
+   break;
+case 54:
+   strcpy (errorstring, "Missing ");
+   break;
+case 55:
+   strcpy (errorstring, "Missing ");
+   break;

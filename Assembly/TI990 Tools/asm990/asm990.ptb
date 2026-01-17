@@ -1,0 +1,479 @@
+/*****************************************************************
+* Parser tables, Generated at Mon Jan 11 15:17:29 2016
+*****************************************************************/
+/*
+** Parser action macros
+*/
+#define SHIFT(co,ar)  (ar<<8|co)
+#define REDUCE(co)    (co<<8|255)
+#define ERROR         -1
+#define GOTO(c,n)     (n<<8|(c&255))
+
+/*
+** Parser token type equates
+*/
+#define EOS       3
+#define OR        7
+#define AND       8
+#define NOT       10
+#define EQ        12
+#define NE        13
+#define LE        14
+#define LT        15
+#define GE        16
+#define GT        17
+#define RTSHIFT   23
+#define HEXNUM    27
+#define DECNUM    28
+#define STRING    29
+#define PC        30
+#define SYM       31
+
+/*
+** SLR(1) parser action tables
+*/
+static short int P1[] = {
+       SHIFT(NOT,7),
+       SHIFT('-',10),
+       SHIFT('+',11),
+       SHIFT('(',12),
+       SHIFT(HEXNUM,14),
+       SHIFT(DECNUM,15),
+       SHIFT(STRING,16),
+       SHIFT(PC,17),
+       SHIFT(SYM,18),
+       ERROR
+};
+static short int P2[] = {
+       SHIFT(EOS,19),
+       ERROR
+};
+static short int P3[] = {
+       SHIFT(OR,20),
+       SHIFT(AND,21),
+       REDUCE(2)
+};
+static short int P4[] = {
+       SHIFT('-',30),
+       SHIFT('+',31),
+       SHIFT('*',32),
+       SHIFT('/',33),
+       SHIFT(RTSHIFT,34),
+       SHIFT(OR,22),
+       SHIFT(AND,23),
+       SHIFT(EQ,24),
+       SHIFT(NE,25),
+       SHIFT(LE,26),
+       SHIFT(LT,27),
+       SHIFT(GE,28),
+       SHIFT(GT,29),
+       REDUCE(3)
+};
+static short int P5[] = {
+       REDUCE(4)
+};
+static short int P6[] = {
+       REDUCE(7)
+};
+static short int P7[] = {
+       SHIFT('(',12),
+       SHIFT(HEXNUM,14),
+       SHIFT(DECNUM,15),
+       SHIFT(STRING,16),
+       SHIFT(PC,17),
+       SHIFT(SYM,18),
+       ERROR
+};
+static short int P8[] = {
+       REDUCE(23)
+};
+static short int P9[] = {
+       REDUCE(15)
+};
+static short int P10[] = {
+       SHIFT('(',12),
+       SHIFT(HEXNUM,14),
+       SHIFT(DECNUM,15),
+       SHIFT(STRING,16),
+       SHIFT(PC,17),
+       SHIFT(SYM,18),
+       ERROR
+};
+static short int P11[] = {
+       SHIFT('(',12),
+       SHIFT(HEXNUM,14),
+       SHIFT(DECNUM,15),
+       SHIFT(STRING,16),
+       SHIFT(PC,17),
+       SHIFT(SYM,18),
+       ERROR
+};
+static short int P12[] = {
+       SHIFT('-',10),
+       SHIFT('+',11),
+       SHIFT('(',12),
+       SHIFT(HEXNUM,14),
+       SHIFT(DECNUM,15),
+       SHIFT(STRING,16),
+       SHIFT(PC,17),
+       SHIFT(SYM,18),
+       ERROR
+};
+static short int P13[] = {
+       REDUCE(27)
+};
+static short int P14[] = {
+       REDUCE(28)
+};
+static short int P15[] = {
+       REDUCE(29)
+};
+static short int P16[] = {
+       REDUCE(30)
+};
+static short int P17[] = {
+       REDUCE(31)
+};
+static short int P18[] = {
+       REDUCE(32)
+};
+static short int P19[] = {
+       REDUCE(1)
+};
+static short int P20[] = {
+       SHIFT(NOT,7),
+       SHIFT('-',10),
+       SHIFT('+',11),
+       SHIFT('(',12),
+       SHIFT(HEXNUM,14),
+       SHIFT(DECNUM,15),
+       SHIFT(STRING,16),
+       SHIFT(PC,17),
+       SHIFT(SYM,18),
+       ERROR
+};
+static short int P21[] = {
+       SHIFT(NOT,7),
+       SHIFT('-',10),
+       SHIFT('+',11),
+       SHIFT('(',12),
+       SHIFT(HEXNUM,14),
+       SHIFT(DECNUM,15),
+       SHIFT(STRING,16),
+       SHIFT(PC,17),
+       SHIFT(SYM,18),
+       ERROR
+};
+static short int P22[] = {
+       SHIFT('-',10),
+       SHIFT('+',11),
+       SHIFT('(',12),
+       SHIFT(HEXNUM,14),
+       SHIFT(DECNUM,15),
+       SHIFT(STRING,16),
+       SHIFT(PC,17),
+       SHIFT(SYM,18),
+       ERROR
+};
+static short int P23[] = {
+       SHIFT('-',10),
+       SHIFT('+',11),
+       SHIFT('(',12),
+       SHIFT(HEXNUM,14),
+       SHIFT(DECNUM,15),
+       SHIFT(STRING,16),
+       SHIFT(PC,17),
+       SHIFT(SYM,18),
+       ERROR
+};
+static short int P24[] = {
+       SHIFT('(',12),
+       SHIFT(HEXNUM,14),
+       SHIFT(DECNUM,15),
+       SHIFT(STRING,16),
+       SHIFT(PC,17),
+       SHIFT(SYM,18),
+       ERROR
+};
+static short int P25[] = {
+       SHIFT('(',12),
+       SHIFT(HEXNUM,14),
+       SHIFT(DECNUM,15),
+       SHIFT(STRING,16),
+       SHIFT(PC,17),
+       SHIFT(SYM,18),
+       ERROR
+};
+static short int P26[] = {
+       SHIFT('(',12),
+       SHIFT(HEXNUM,14),
+       SHIFT(DECNUM,15),
+       SHIFT(STRING,16),
+       SHIFT(PC,17),
+       SHIFT(SYM,18),
+       ERROR
+};
+static short int P27[] = {
+       SHIFT('(',12),
+       SHIFT(HEXNUM,14),
+       SHIFT(DECNUM,15),
+       SHIFT(STRING,16),
+       SHIFT(PC,17),
+       SHIFT(SYM,18),
+       ERROR
+};
+static short int P28[] = {
+       SHIFT('(',12),
+       SHIFT(HEXNUM,14),
+       SHIFT(DECNUM,15),
+       SHIFT(STRING,16),
+       SHIFT(PC,17),
+       SHIFT(SYM,18),
+       ERROR
+};
+static short int P29[] = {
+       SHIFT('(',12),
+       SHIFT(HEXNUM,14),
+       SHIFT(DECNUM,15),
+       SHIFT(STRING,16),
+       SHIFT(PC,17),
+       SHIFT(SYM,18),
+       ERROR
+};
+static short int P30[] = {
+       SHIFT('-',10),
+       SHIFT('+',11),
+       SHIFT('(',12),
+       SHIFT(HEXNUM,14),
+       SHIFT(DECNUM,15),
+       SHIFT(STRING,16),
+       SHIFT(PC,17),
+       SHIFT(SYM,18),
+       ERROR
+};
+static short int P31[] = {
+       SHIFT('-',10),
+       SHIFT('+',11),
+       SHIFT('(',12),
+       SHIFT(HEXNUM,14),
+       SHIFT(DECNUM,15),
+       SHIFT(STRING,16),
+       SHIFT(PC,17),
+       SHIFT(SYM,18),
+       ERROR
+};
+static short int P32[] = {
+       SHIFT('-',10),
+       SHIFT('+',11),
+       SHIFT('(',12),
+       SHIFT(HEXNUM,14),
+       SHIFT(DECNUM,15),
+       SHIFT(STRING,16),
+       SHIFT(PC,17),
+       SHIFT(SYM,18),
+       ERROR
+};
+static short int P33[] = {
+       SHIFT('-',10),
+       SHIFT('+',11),
+       SHIFT('(',12),
+       SHIFT(HEXNUM,14),
+       SHIFT(DECNUM,15),
+       SHIFT(STRING,16),
+       SHIFT(PC,17),
+       SHIFT(SYM,18),
+       ERROR
+};
+static short int P34[] = {
+       SHIFT('-',10),
+       SHIFT('+',11),
+       SHIFT('(',12),
+       SHIFT(HEXNUM,14),
+       SHIFT(DECNUM,15),
+       SHIFT(STRING,16),
+       SHIFT(PC,17),
+       SHIFT(SYM,18),
+       ERROR
+};
+static short int P35[] = {
+       REDUCE(8)
+};
+static short int P36[] = {
+       REDUCE(24)
+};
+static short int P37[] = {
+       REDUCE(25)
+};
+static short int P38[] = {
+       SHIFT(')',55),
+       SHIFT('-',30),
+       SHIFT('+',31),
+       SHIFT('*',32),
+       SHIFT('/',33),
+       SHIFT(RTSHIFT,34),
+       SHIFT(OR,22),
+       SHIFT(AND,23),
+       ERROR
+};
+static short int P39[] = {
+       SHIFT(EQ,24),
+       SHIFT(NE,25),
+       SHIFT(LE,26),
+       SHIFT(LT,27),
+       SHIFT(GE,28),
+       SHIFT(GT,29),
+       SHIFT('-',30),
+       SHIFT('+',31),
+       SHIFT('*',32),
+       SHIFT('/',33),
+       SHIFT(RTSHIFT,34),
+       SHIFT(OR,22),
+       SHIFT(AND,23),
+       ERROR
+};
+static short int P40[] = {
+       REDUCE(5)
+};
+static short int P41[] = {
+       REDUCE(6)
+};
+static short int P42[] = {
+       REDUCE(21)
+};
+static short int P43[] = {
+       REDUCE(22)
+};
+static short int P44[] = {
+       REDUCE(9)
+};
+static short int P45[] = {
+       REDUCE(10)
+};
+static short int P46[] = {
+       REDUCE(11)
+};
+static short int P47[] = {
+       REDUCE(12)
+};
+static short int P48[] = {
+       REDUCE(13)
+};
+static short int P49[] = {
+       REDUCE(14)
+};
+static short int P50[] = {
+       REDUCE(16)
+};
+static short int P51[] = {
+       REDUCE(17)
+};
+static short int P52[] = {
+       REDUCE(18)
+};
+static short int P53[] = {
+       REDUCE(19)
+};
+static short int P54[] = {
+       REDUCE(20)
+};
+static short int P55[] = {
+       REDUCE(26)
+};
+
+static short int const *parsetable[] = {
+       P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11, 
+       P12, P13, P14, P15, P16, P17, P18, P19, P20, P21, 
+       P22, P23, P24, P25, P26, P27, P28, P29, P30, P31, 
+       P32, P33, P34, P35, P36, P37, P38, P39, P40, P41, 
+       P42, P43, P44, P45, P46, P47, P48, P49, P50, P51, 
+       P52, P53, P54, P55
+};
+
+/*
+** SLR(1) parser goto tables
+*/
+static short int GOAL[] = {
+       GOTO(-1,0)
+};
+static short int EXPR[] = {
+       GOTO(-1,2)
+};
+static short int LEXPR[] = {
+       GOTO(-1,3)
+};
+static short int XFACT[] = {
+       GOTO(1,5),
+       GOTO(20,40),
+       GOTO(-1,41)
+};
+static short int XRELA[] = {
+       GOTO(-1,6)
+};
+static short int AEXPR[] = {
+       GOTO(1,4),
+       GOTO(12,38),
+       GOTO(-1,39)
+};
+static short int TERM[] = {
+       GOTO(22,42),
+       GOTO(23,43),
+       GOTO(30,50),
+       GOTO(31,51),
+       GOTO(32,52),
+       GOTO(33,53),
+       GOTO(34,54),
+       GOTO(-1,9)
+};
+static short int ELEM[] = {
+       GOTO(7,35),
+       GOTO(10,36),
+       GOTO(11,37),
+       GOTO(24,44),
+       GOTO(25,45),
+       GOTO(26,46),
+       GOTO(27,47),
+       GOTO(28,48),
+       GOTO(29,49),
+       GOTO(-1,8)
+};
+static short int VARBL[] = {
+       GOTO(-1,13)
+};
+
+static struct {
+   short int *go;
+   int  handle;
+} const gototable[] = {
+   /* G1 */ GOAL,2,
+   /* G2 */ EXPR,1,
+   /* G3 */ EXPR,1,
+   /* G4 */ LEXPR,1,
+   /* G5 */ LEXPR,3,
+   /* G6 */ LEXPR,3,
+   /* G7 */ XFACT,1,
+   /* G8 */ XFACT,2,
+   /* G9 */ XRELA,3,
+   /* G10 */ XRELA,3,
+   /* G11 */ XRELA,3,
+   /* G12 */ XRELA,3,
+   /* G13 */ XRELA,3,
+   /* G14 */ XRELA,3,
+   /* G15 */ AEXPR,1,
+   /* G16 */ AEXPR,3,
+   /* G17 */ AEXPR,3,
+   /* G18 */ AEXPR,3,
+   /* G19 */ AEXPR,3,
+   /* G20 */ AEXPR,3,
+   /* G21 */ AEXPR,3,
+   /* G22 */ AEXPR,3,
+   /* G23 */ TERM,1,
+   /* G24 */ TERM,2,
+   /* G25 */ TERM,2,
+   /* G26 */ ELEM,3,
+   /* G27 */ ELEM,1,
+   /* G28 */ ELEM,1,
+   /* G29 */ ELEM,1,
+   /* G30 */ ELEM,1,
+   /* G31 */ ELEM,1,
+   /* G32 */ VARBL,1
+};

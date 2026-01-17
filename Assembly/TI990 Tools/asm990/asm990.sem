@@ -1,0 +1,272 @@
+case 1:
+   
+   value = Stkval(2);
+   
+   break;
+case 5:
+   
+   value = Stkval(3) || Stkval(1);
+   
+   break;
+case 6:
+   
+   value = Stkval(3) && Stkval(1);
+   
+   break;
+case 8:
+   
+   value = ~ Stkval(1);
+   
+   break;
+case 9:
+   
+   value = Stkval(3) == Stkval(1);
+   
+   break;
+case 10:
+   
+   value = Stkval(3) != Stkval(1);
+   
+   break;
+case 11:
+   
+   value = Stkval(3) <= Stkval(1);
+   
+   break;
+case 12:
+   
+   value = Stkval(3) < Stkval(1);
+   
+   break;
+case 13:
+   
+   value = Stkval(3) >= Stkval(1);
+   
+   break;
+case 14:
+   
+   value = Stkval(3) > Stkval(1);
+   
+   break;
+case 16:
+   
+   value = (toktyp)((int16)Stkval(3) - (int16)Stkval(1));
+   if (lextvalue >= 0)
+   {
+   	SymNode *s;
+   	if (txmiramode)
+   	   Parse_Error (INTERP_ERROR, ILL_EXTERNAL, defer);
+   	s = symlookup (extname, FALSE, FALSE);
+   	if (s == NULL)
+   	{
+   	   Parse_Error (INTERP_ERROR, INTERNAL_ERR, defer);
+   	}
+   	else
+   	{
+   	   s->value = lextvalue;
+   	   s->extcnt++;
+   	   s->refcnt--;
+   	   value -= lextvalue;
+   	   extvalue = lextvalue;
+   	}
+   }
+   
+   break;
+case 17:
+   
+   value = Stkval(3) + Stkval(1);
+   if (lextvalue >= 0)
+   {
+   	SymNode *s;
+   	if (txmiramode)
+   	   Parse_Error (INTERP_ERROR, ILL_EXTERNAL, defer);
+   	s = symlookup (extname, FALSE, FALSE);
+   	if (s == NULL)
+   	{
+   	   Parse_Error (INTERP_ERROR, INTERNAL_ERR, defer);
+   	}
+   	else
+   	{
+   	   s->value = lextvalue;
+   	   s->extcnt++;
+   	   s->refcnt--;
+   	   value -= lextvalue;
+   	   extvalue = lextvalue;
+   	}
+   }
+   
+   break;
+case 18:
+   
+   if (lextvalue >= 0)
+   	Parse_Error (INTERP_ERROR, ILL_EXTERNAL, defer);
+   else
+   	value = Stkval(3) * Stkval(1);
+   
+   break;
+case 19:
+   
+   if (Stkval(1) == 0.0)
+   	Parse_Error (INTERP_ERROR, ZERO_DIVIDE, defer);
+   else if (lextvalue >= 0)
+   	Parse_Error (INTERP_ERROR, ILL_EXTERNAL, defer);
+   else
+   	value = (toktyp)((int16)Stkval(3) / (int16)Stkval(1));
+   
+   break;
+case 20:
+   
+   if (lextvalue >= 0)
+   	Parse_Error (INTERP_ERROR, ILL_EXTERNAL, defer);
+   else
+   	value = Stkval(3) >> Stkval(1);
+   
+   break;
+case 21:
+   
+   if (lextvalue >= 0)
+   	Parse_Error (INTERP_ERROR, ILL_EXTERNAL, defer);
+   else
+   	value = Stkval(3) | Stkval(1);
+   
+   break;
+case 22:
+   
+   if (lextvalue >= 0)
+   	Parse_Error (INTERP_ERROR, ILL_EXTERNAL, defer);
+   else
+   	value = Stkval(3) & Stkval(1);
+   
+   break;
+case 24:
+   
+   value = - Stkval(1);
+   
+   break;
+case 25:
+   
+   value = Stkval(1);
+   
+   break;
+case 26:
+   
+   value = Stkval(2);
+   
+   break;
+case 28:
+   
+   value = Stkval(1);
+   
+   break;
+case 29:
+   
+   value = Stkval(1);
+   
+   break;
+case 30:
+   
+   if (!defer && (int)strlen(CStkval(1)) > entsize)
+   {
+   	sprintf (errtmp, "String too long for expression: %s",
+   	         CStkval(1));
+   	logerror (errtmp);
+   	value = 0;
+   }
+   else value = Stkval(1);
+   
+   break;
+case 31:
+   
+   value = Stkval(1);
+   if (absolute) relocatable = 0;
+   
+   break;
+case 32:
+   
+   {
+   SymNode *s;
+   int xref = ((inpass == 1) && (defer == FALSE)) ? FALSE : TRUE;
+   char temp[MAXSYMLEN+2];
+   
+   if (strlen(CStkval(1)) > MAXSYMLEN)
+   {
+   	   strncpy (temp, CStkval(1), MAXSYMLEN);
+   	   temp[MAXSYMLEN] = '\0';
+   }
+   else
+   	   strcpy (temp, CStkval(1));
+   s = symlookup (temp, FALSE, xref);
+   if (!s && defer)
+   {
+   	   /* defer look up now */
+   	   value = 0;
+   }
+   else
+   {
+   	   if (s == NULL)
+   	   {
+   	      if (temp[0] == '_') /* && temp[1] == '_') */
+   	      {
+   	         /* GCC generated add & mark LREF */
+   	         if ((s=symlookup (temp, TRUE, xref)) != NULL)
+   	         {
+   		    s->value = 0;
+   		    s->flags &= ~RELOCATABLE;
+   		    s->flags |= EXTERNAL | LONGSYM;
+   		    goto REF_USED;
+   	         }
+   	      }
+   	      else
+   	      {
+   	         sprintf (errtmp, "Undefined symbol: %s", CStkval(1));
+   	         logerror (errtmp);
+   	      }
+   	      value = 0;
+   	   }
+   	   else
+   	   {
+   	   REF_USED:
+   	      /* Mark REF as being used */
+   	      if ((s->flags & EXTERNAL || s->flags & SREFSYM)
+   		    && s->value == 0)
+   	      {
+   	         if (absolute)
+   		    s->flags &= ~RELOCATABLE;
+   	         else
+   		    s->flags |= RELOCATABLE;
+   	      }
+   	      if (s->flags & RELOCATABLE) relocatable++;
+   	      value = s->value;
+   	      if (s->flags & EXTERNAL || s->flags & SREFSYM)
+   	      {
+   	         if (extname[0])
+   		    Parse_Error (INTERP_ERROR, ILL_EXTERNAL, defer);
+   	         lextvalue = s->value;
+   	         strcpy (extname, temp);
+   	         /* Don't relocate since it's external tail */
+   	         if (s->refcnt == 0 && value == 0)
+   		    relocatable = 100;
+   	         /* back link reference chain */
+   	         s->value = pc + pcinc; 
+   	         s->refcnt++;
+   	         if (indseg)
+   		    s->flags |= DSEGEXTERN;
+   	         if (incseg)
+   		 {
+   		    s->flags |= CSEGEXTERN;
+   		    s->csegndx = csegval;
+   		 }
+   	      }
+   	      else if (extname[0] && (s->flags & RELOCATABLE))
+   		    Parse_Error (INTERP_ERROR, ILL_EXTERNAL, defer);
+   	      if (s->flags & DSEGSYM) segvaltype = DSEGSYM;
+   	      if (s->flags & CSEGSYM)
+   	      {
+   		 segvaltype = CSEGSYM;
+   		 csegval = s->csegndx;
+   	      }
+   	   }
+   }
+   }
+   
+   break;
