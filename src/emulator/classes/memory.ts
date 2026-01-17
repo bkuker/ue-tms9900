@@ -3,6 +3,7 @@ import fs from 'fs';
 
 import { Log } from '../../classes/log';
 import { CPU } from '../interfaces/cpu';
+import {UeUart} from './ueuart';
 
 export class Memory {
 
@@ -11,8 +12,9 @@ export class Memory {
     private rom: Uint8Array;
     private ram: Uint8Array = new Uint8Array(12 * 1024);
 
-    constructor() {
-        const rom = 'Assembly/Programs/hellorld.rom';
+    private mux1 = new UeUart(0xF000);
+
+    constructor( rom: string) {
         console.log(`Loading ${rom} @0x0000`);
         const buffer = fs.readFileSync(rom);
         this.rom = new Uint8Array(buffer);
@@ -24,22 +26,23 @@ export class Memory {
 
 
     getWord(addr: number): number {
-        return 0;
-        //TODO This should get value with no cycles
-        //return this.readWord(addr);
+        return this.readWord(addr, null);
     };
 
 
-    public readWord(addr: number, cpu: CPU): number {
+    public readWord(addr: number, cpu: CPU | null): number {
         //TODO ADD CYCLES
         //console.log("Address Bus: " + addr.toString(2).padStart(16, "0").replaceAll("0", "."));
         if (addr >= 0 && addr < 0x0FFE) {
             //ROM
             return (this.rom[addr] << 8) | this.rom[addr + 1];
         } else if (addr >= 0x1000 && addr < 0x3FFE) {
+            cpu?.addCycles(4);
             const offset = addr - 0x1000;
             return (this.ram[offset] << 8) | this.ram[offset + 1];
             //RAM
+        } else if ( addr >= 0xF000 && addr <= 0xF008 ){
+            return this.mux1.readWord(addr);
         } else {
             this.log.info(`Read from unmapped location ${addr.toString(16)}`);
             return 0;
@@ -52,11 +55,12 @@ export class Memory {
         if (addr >= 0 && addr < 0x0FFE) {
             this.log.info(`Write to ROM location ${addr.toString(16)}`);
         } else if (addr >= 0x1000 && addr < 0x3FFE) {
+            cpu.addCycles(4); //Probably a TI99 thing, ram behind video processor
             const offset = addr - 0x1000;
             this.ram[offset] = w >> 8;
             this.ram[offset + 1] = w & 0xFF;
-        } else if ( addr == 0xF002 ){
-            console.log("Mux1 Write " + String.fromCharCode(w));
+        } else if ( addr >= 0xF000 && addr <= 0xF008 ){
+            this.mux1.writeWord(addr, w);
         } else {
             this.log.info(`Write to unmapped location ${addr.toString(16)}`);
         }
