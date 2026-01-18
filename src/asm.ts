@@ -5,8 +5,8 @@ import { spawn } from "child_process";
 import { Command } from 'commander';
 
 
-const ASM_CMD = `${process.cwd()}/Assembly/TI990 Tools/asm990/asm990.exe`;
-const LINK_CMD = `${process.cwd()}/Assembly/TI990 Tools/lnk990/lnk990.exe`;
+const ASM_CMD = `${process.cwd()}/Assembly/TI990 Tools/asm990/asm990`;
+const LINK_CMD = `${process.cwd()}/Assembly/TI990 Tools/lnk990/lnk990`;
 
 //If running from "npm run" change back
 //to the directory the user ran the program from
