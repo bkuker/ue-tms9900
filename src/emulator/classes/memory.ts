@@ -31,6 +31,7 @@ export class Memory {
 
 
     public readWord(addr: number, cpu: CPU | null): number {
+        addr &= 0xFFFE;
         //TODO ADD CYCLES
 
         var ret: number;
@@ -53,9 +54,7 @@ export class Memory {
     }
 
     public writeWord(addr: number, w: number, cpu: CPU) {
-        //if (w)
-            //console.log(`writeWord ${addr.toString(16)}: ${w.toString(16)}`);
-
+        addr &= 0xFFFE;  
         if (addr >= 0 && addr < 0x0FFE) {
             this.log.info(`Write to ROM location ${addr.toString(16)}`);
         } else if (addr >= 0x1000 && addr < 0x3FFE) {

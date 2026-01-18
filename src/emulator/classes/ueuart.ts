@@ -1,33 +1,13 @@
-/*
-TR1602B
-SFD Status Flag Disconect allows reading of THRE
+/**
+ * Emulates the UART card from the UE Homebrew TMS990 computer
+ * 
+ * 
+ * THRE    EQU >F000 <- Read, byte 1 means ready to transmit
+ * THRL    EQU >F002 -> Write data to send
+ * RRD     EQU >F004 <- Read data received
+ * DRR     EQU >F006 -> Write to reset data received signal
+ */
 
-RRC & TRC Baud Rate, set to 300
-
-THRE Transmitter Holding Register Empty - lets us know when uart is done transmitting
-TRE Transmitter Register Empty ignore
-
-THRL Transmitter Holding Register Load - strobe and uart grabs value off data bus
-
-8 bit word length
-
-ROM for.... memory map io logic
-
-RRD Receive Register Disconnect puts outputs on data bus
-
-DRR Date Received Reset resets DR
-DR Data Received - off to the IRQ Level 8, b1000
-RI Receiver Input
-
-
-THRE    EQU >F000 <- Read, byte 1 means ready to transmit
-THRL    EQU >F002 -> Write data to send
-RRD     EQU >F004 <- Read data received
-DRR     EQU >F006 -> Write to reset data received signal
-
-
-
-*/
 import { Log } from '../../classes/log';
 import { InterruptSource, registerInterruptSource } from './interrupts';
 
@@ -88,7 +68,8 @@ export class UeUart implements InterruptSource {
             //console.log("UART READ " + this.rData);
             return this.rData;
         } else {
-            this.log.warn("Weird UART read from address 0x" + addr.toString(16));
+            //Not weird for RMW for MOVB
+            //this.log.warn("Weird UART read from address 0x" + addr.toString(16));
         }
     }
 
@@ -96,8 +77,8 @@ export class UeUart implements InterruptSource {
         if (addr == this.baseAddr + 2) {
             //THRL, load data to send
             this.tData = w & 0xFF;
-            //console.log("UART Write " + this.tData.toString(16) + " " + String.fromCharCode(this.tData));
-            process.stdout.write(String.fromCharCode(this.tData));
+            console.log("UART Write 0x" +this.tData.toString(16) + " " + String.fromCharCode(this.tData));
+            //process.stdout.write(String.fromCharCode(this.tData));
             this.tReady = false;
         } else if (addr == this.baseAddr + 6) {
             //DRR, reset data ready
