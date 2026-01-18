@@ -1,9 +1,9 @@
-import {CRU} from './cru';
-import {Util} from '../../classes/util';
-import {Memory} from './memory';
-import {CPU} from '../interfaces/cpu';
-import {Opcode} from "../../classes/opcode";
-import {CPUCommon} from "./cpu-common";
+import { Util } from '../../classes/util';
+import { Memory } from './memory';
+import { CPU } from '../interfaces/cpu';
+import { Opcode } from "../../classes/opcode";
+import { CPUCommon } from "./cpu-common";
+import { getInterruptState } from './interrupts';
 
 export class TMS9900 extends CPUCommon implements CPU {
 
@@ -12,7 +12,6 @@ export class TMS9900 extends CPUCommon implements CPU {
     static readonly PROFILE = false;
 
     private memory: Memory;
-    private cru: CRU;
 
     // Misc
     private suspended: boolean;
@@ -20,10 +19,9 @@ export class TMS9900 extends CPUCommon implements CPU {
     private countStart: number;
     private maxCount: number;
 
-    constructor(memory: Memory, cru: CRU) {
+    constructor(memory: Memory) {
         super();
         this.memory = memory;
-        this.cru = cru;
         this.addSpecialInstructions();
     }
 
@@ -91,8 +89,14 @@ export class TMS9900 extends CPUCommon implements CPU {
                     //this.log.info(Util.padr(this.disassembler.disassembleInstruction(tmpPC), ' ', 40) + instrCycles);
                 }
                 // Execute interrupt routine
-                if (this.getInterruptMask() >= 1 && (this.cru.isVDPInterrupt() || this.cru.isTimerInterrupt())) {
-                    this.addCycles(this.doInterrupt(4));
+                const { intReq, ic } = getInterruptState();
+                if (intReq && ic <= this.getInterruptMask()) {
+                    this.addCycles(this.doInterrupt(ic * 4));
+
+                    // Auto-adjust interrupt mask (real hardware behavior)
+                    // This prevents same/lower priority interrupts during the handler
+                    const newMask = ic === 0 ? 0 : ic - 1;
+                    this.st = (this.st & 0xFFF0) | newMask;
                 }
                 skipBreakpoint = false;
             }
@@ -155,16 +159,21 @@ export class TMS9900 extends CPUCommon implements CPU {
     }
 
     readCruBit(addr: number): boolean {
-        return this.cru.readBit(addr);
+        //Nothing attached to the CRU
+        this.log.warn("Nothing on CRU to read from!");
+        return false;
     }
 
     writeCruBit(addr: number, bool: boolean) {
-        this.cru.writeBit(addr, bool);
+        //Nothing attached
+        this.log.warn("Nothing on CRU to write to!");
     }
 
     doInterrupt(vector: number): number {
         const newWP = this.readMemoryWord(vector);
         const newPC = this.readMemoryWord(vector + 2);
+
+        //console.log(`Int ${vector / 4} @0x${newPC.toString(16)}`);
 
         this.writeMemoryWord(newWP + 26, this.wp);	// WP in new R13
         this.writeMemoryWord(newWP + 28, this.pc);	// PC in new R14
@@ -348,7 +357,7 @@ export class TMS9900 extends CPUCommon implements CPU {
         if (TMS9900.PROFILE) {
             const sortedProfile = [];
             for (let i = 0; i < 0x10000; i++) {
-                sortedProfile[i] = {addr: i, count: this.profile[i]};
+                sortedProfile[i] = { addr: i, count: this.profile[i] };
             }
             sortedProfile.sort(function (p1, p2) {
                 return p2.count - p1.count;

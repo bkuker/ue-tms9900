@@ -1,6 +1,5 @@
 import { TMS9900 } from './emulator/classes/tms9900';
 import { Memory } from './emulator/classes/memory';
-import { CRU } from './emulator/classes/cru';
 
 
 
@@ -12,9 +11,8 @@ main().catch((err) => {
 
 
 async function main(): Promise<void> {
-    let memory = new Memory('Assembly/Programs/hellorld.rom');
-    let cru = new CRU();
-    let cpu = new TMS9900(memory, cru);
+    let memory = new Memory('Assembly/Programs/typewriter_v5.rom');
+    let cpu = new TMS9900(memory);
     cpu.reset();
 
     while (true) {

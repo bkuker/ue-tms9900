@@ -29,8 +29,9 @@ DRR     EQU >F006 -> Write to reset data received signal
 
 */
 import { Log } from '../../classes/log';
+import { InterruptSource, registerInterruptSource } from './interrupts';
 
-export class UeUart {
+export class UeUart implements InterruptSource {
     private log: Log = Log.getLog();
 
     private rData: number;
@@ -43,16 +44,36 @@ export class UeUart {
 
     constructor(baseAddr: number) {
         this.baseAddr = baseAddr;
-        this.rData = 0;
+        this.rData = 64;
         this.rReady = false;
         this.tData = 0;
         this.tReady = true;
+
+        registerInterruptSource(this);
+
+        process.stdin.setRawMode(true);
+        process.stdin.resume();
+        process.stdin.setEncoding('utf8');
+
+        process.stdin.on("data", (key: string) => {
+            if (key === "\u0003")
+                process.exit(); // Ctrl+C
+            this.rData = key.charCodeAt(0);
+            this.rReady = true;
+        });
 
         setInterval(() => {
             //Ready to transmit every 4 ms
             //a little slower than 300 baud
             this.tReady = true;
         }, 4);
+    }
+
+    getInterruptCode(): number {
+        return 8;
+    }
+    isAssertingInterrupt(): boolean {
+        return this.rReady;
     }
 
     public readWord(addr: number): number {
@@ -63,22 +84,27 @@ export class UeUart {
         } else if (addr == this.baseAddr + 4) {
             //RRD Read the data
             if (!this.rReady)
-                this.log.warn("UARD read when no data ready")
+                this.log.warn("UART read when no data ready")
+            //console.log("UART READ " + this.rData);
             return this.rData;
         } else {
-            this.log.warn("UARD read from address " + addr);
+            this.log.warn("Weird UART read from address 0x" + addr.toString(16));
         }
     }
 
     public writeWord(addr: number, w: number) {
-        if (addr = this.baseAddr + 2) {
+        if (addr == this.baseAddr + 2) {
             //THRL, load data to send
             this.tData = w & 0xFF;
-            console.log("Uart Write " + String.fromCharCode(this.tData));
+            //console.log("UART Write " + this.tData.toString(16) + " " + String.fromCharCode(this.tData));
+            process.stdout.write(String.fromCharCode(this.tData));
             this.tReady = false;
-        } else if (addr = this.baseAddr + 6) {
+        } else if (addr == this.baseAddr + 6) {
             //DRR, reset data ready
+            //console.log("Clear DDR")
             this.rReady = false;
+        } else {
+            this.log.warn("Weird UART write " + w + " to address 0x" + addr.toString(16));
         }
     }
 

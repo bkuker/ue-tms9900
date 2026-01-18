@@ -49,7 +49,7 @@ CKBUF   MOV @RXBUF, R0          ; Move it into R0
 SEND    MOV @THRE, R1           ; Load R1 with THRE status
         ANDI 1, >0001           ; AND to eliminate everything except status
         JNE SEND                ; If equal to 0, loop back and test again
-        MOVB @RXBUF, @THRL      ; Put value onto bus and toggle THRL address
+        MOV @RXBUF, @THRL      ; Put value onto bus and toggle THRL address
         CLR @RXBUF              ; Clear out the buffer
         JMP CKBUF               ; Jump back and start again
 
