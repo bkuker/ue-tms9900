@@ -590,7 +590,7 @@ main (int argc, char **argv)
       perror ("asm990: Can't open input file");
       exit (ABORT);
    }
-   if ((outfd = fopen (outfile, "wb")) == NULL)
+   if ((outfd = fopen (outfile, "w")) == NULL)
    {
       perror ("asm990: Can't open output file");
       exit (ABORT);

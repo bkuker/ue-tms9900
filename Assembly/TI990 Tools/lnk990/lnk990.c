@@ -640,7 +640,7 @@ main (int argc, char **argv)
    curmod = 0;
    for (i = 0; i < infilecnt; i++)
    {
-      if ((infd = fopen (infiles[i].name, "rb")) == NULL)
+      if ((infd = fopen (infiles[i].name, "r")) == NULL)
       {
 	 sprintf (inbuf, "lnk990: Can't open input file %s", infiles[i].name);
 	 perror (inbuf);
@@ -776,7 +776,7 @@ main (int argc, char **argv)
       printf ("lnk990: infile[%d].name = %s, library = %s\n",
 	       i, infiles[i].name, infiles[i].library ? "TRUE" : "FALSE");
 #endif
-      if ((infd = fopen (infiles[i].name, "rb")) == NULL)
+      if ((infd = fopen (infiles[i].name, "r")) == NULL)
       {
 	 sprintf (inbuf, "lnk990: Can't open input file %s", infiles[i].name);
 	 perror (inbuf);
