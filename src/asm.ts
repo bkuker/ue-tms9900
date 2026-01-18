@@ -40,15 +40,7 @@ async function main(): Promise<void> {
     const obj = `${baseName}.obj`;
     const aout = `${baseName}.aout`;
 
-    if ( true ){
-        await run(ASM_CMD, ["-l", lst, "-o", obj, fileName]);
-        const text = fs.readFileSync(obj, "utf-8");
-        const unixText = text.replace(/\r\n/g, "\n");
-        fs.writeFileSync(obj, unixText, "utf-8");
-    } else {
-        await run(ASM_CMD, ["-c", "-l", lst, "-o", obj, fileName]);
-    }
-
+    await run(ASM_CMD, ["-l", lst, "-o", obj, fileName]);
     await run(LINK_CMD, ["-a", "-o", aout, obj]);
 
     const romA = fs.openSync(`${baseName}.a.rom`, "w");

@@ -560,7 +560,7 @@ main (int argc, char **argv)
    ** Open the files.
    */
 
-   if ((outfd = fopen (outfile, "w")) == NULL)
+   if ((outfd = fopen (outfile, "wb")) == NULL)
    {
       perror ("lnk990: Can't open output file");
       exit (ABORT);
