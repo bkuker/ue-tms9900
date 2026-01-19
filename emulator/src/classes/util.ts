@@ -99,20 +99,6 @@ export class Util {
         }
         return arr;
     }
-
-    static fileListToFileArray(fileList: FileList | null) {
-        const files: File[] = [];
-        if (fileList) {
-            for (let i = 0; i < fileList.length; i++) {
-                const file = fileList.item(i);
-                if (file) {
-                    files.push(file);
-                }
-            }
-        }
-        return files;
-    }
-
     static isDiskImage(fileBuffer: Uint8Array) {
         return fileBuffer.length >= 16 && fileBuffer[0x0D] === 0x44 && fileBuffer[0x0E] === 0x53 && fileBuffer[0x0F] === 0x4B;
     }

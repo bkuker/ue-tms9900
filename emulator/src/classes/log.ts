@@ -6,11 +6,6 @@ export enum LogLevel {
     NONE = 4
 }
 
-interface LogTextNode {
-    node: Text;
-    lines: number;
-}
-
 export class Log {
 
     private static readonly BUFFER_SIZE = 32;
@@ -19,10 +14,8 @@ export class Log {
     private static instance: Log;
 
     private minLevel = LogLevel.INFO;
-    private element: HTMLElement;
     private buffer: string[] = [];
     private sameMessageCount = 0;
-    private textNodes: LogTextNode[] = [];
     private totalLines = 0;
 
     static getLog(): Log {
@@ -38,16 +31,9 @@ export class Log {
         }, 1000);
     }
 
-    init(element: HTMLElement) {
-        this.element = element;
-    }
 
     clear() {
-        for (const textNode of this.textNodes) {
-            this.element.removeChild(textNode.node);
-        }
         this.totalLines = 0;
-        this.textNodes = [];
     }
 
     print(message: string) {
@@ -63,24 +49,10 @@ export class Log {
     }
 
     flushBuffer() {
-        while (this.totalLines > Log.MAX_LOG_LINES) {
-            const logTextNode = this.textNodes.shift();
-            if (logTextNode) {
-                this.element.removeChild(logTextNode.node);
-                this.totalLines -= logTextNode.lines;
-            }
-        }
         if (this.buffer.length) {
             this.updateSameMessage();
             const messages = this.buffer.join('\n') + (this.buffer.length ? '\n' : '');
-            if (this.element) {
-                const textNode = this.element.appendChild(document.createTextNode(messages));
-                this.textNodes.push({node: textNode, lines: this.buffer.length});
-                this.totalLines += this.buffer.length;
-                this.element.scrollTop = this.element.scrollHeight;
-            } else {
-                console.log(this.buffer);
-            }
+            console.log(this.buffer);
             this.buffer = [];
         }
     }

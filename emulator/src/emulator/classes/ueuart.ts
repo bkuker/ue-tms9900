@@ -31,6 +31,7 @@ export class UeUart implements InterruptSource {
 
         registerInterruptSource(this);
 
+        /*
         process.stdin.setRawMode(true);
         process.stdin.resume();
         process.stdin.setEncoding('utf8');
@@ -46,7 +47,7 @@ export class UeUart implements InterruptSource {
             //Ready to transmit every 4 ms
             //a little slower than 300 baud
             this.tReady = true;
-        }, 4);
+        }, 4);*/
     }
 
     getInterruptCode(): number {

@@ -1,5 +1,5 @@
 
-import fs from 'fs';
+import * as fs from 'fs';
 
 import { Log } from '../../classes/log';
 import { CPU } from '../interfaces/cpu';
@@ -9,15 +9,15 @@ export class Memory {
 
 
     private log: Log = Log.getLog();
-    private rom: Uint8Array;
+    private rom: Uint8Array = new Uint8Array(12 * 1024); //TODO
     private ram: Uint8Array = new Uint8Array(12 * 1024);
 
     private mux1 = new UeUart(0xF000);
 
     constructor(rom: string) {
-        console.log(`Loading ${rom} @0x0000`);
+       /* console.log(`Loading ${rom} @0x0000`);
         const buffer = fs.readFileSync(rom);
-        this.rom = new Uint8Array(buffer);
+        this.rom = new Uint8Array(buffer);*/
     }
 
     public reset(keepCart: boolean) {

@@ -1,0 +1,22 @@
+{
+  "name": "@ue-tms9900/emulator",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./*": "./dist/*.js"
+  },
+  "scripts": {
+    "build": "tsup src/**/*.ts --format esm --dts",
+    "dev": "tsup src/**/*.ts --format esm --dts --watch"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "rxjs": "^7.8.2"
+  }
+}

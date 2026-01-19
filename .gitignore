@@ -4,3 +4,4 @@ node_modules
 *.lst
 *.aout
 *.rom
+dist/

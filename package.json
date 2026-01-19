@@ -1,19 +1,9 @@
 {
-  "name": "ue2-tms9900",
-  "version": "1.0.0",
-  "author": "Bill Kuker",
-  "license": "MIT",
-  "scripts": {
-    "asm": "ts-node src/asm.ts",
-    "emu": "ts-node src/emu.ts"
-  },
-  "dependencies": {
-    "commander": "^14.0.2",
-    "rxjs": "^7.8.2"
-  },
-  "devDependencies": {
-    "ts-node": "^10.9.2",
-    "typescript": "^5.8.3",
-    "@types/node": "^22.15.17"
-  }
+  "name": "ue-tms9900",
+  "private": true,
+  "workspaces": [
+    "emulator",
+    "cli",
+    "web"
+  ]
 }
