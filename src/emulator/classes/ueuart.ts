@@ -77,8 +77,8 @@ export class UeUart implements InterruptSource {
         if (addr == this.baseAddr + 2) {
             //THRL, load data to send
             this.tData = w & 0xFF;
-            console.log("UART Write 0x" +this.tData.toString(16) + " " + String.fromCharCode(this.tData));
-            //process.stdout.write(String.fromCharCode(this.tData));
+            //console.log("UART Write 0x" +this.tData.toString(16) + " " + String.fromCharCode(this.tData));
+            process.stdout.write(String.fromCharCode(this.tData));
             this.tReady = false;
         } else if (addr == this.baseAddr + 6) {
             //DRR, reset data ready
