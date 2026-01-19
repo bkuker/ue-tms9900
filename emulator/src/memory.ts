@@ -1,8 +1,8 @@
 
 import * as fs from 'fs';
 
-import { Log } from '../../classes/log';
-import { CPU } from '../interfaces/cpu';
+import { Log } from './util/log';
+import { CPU } from './interfaces/cpu';
 import { UeUart } from './ueuart';
 
 export class Memory {

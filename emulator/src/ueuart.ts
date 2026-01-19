@@ -8,7 +8,7 @@
  * DRR     EQU >F006 -> Write to reset data received signal
  */
 
-import { Log } from '../../classes/log';
+import { Log } from './util/log';
 import { InterruptSource, registerInterruptSource } from './interrupts';
 
 export class UeUart implements InterruptSource {

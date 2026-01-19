@@ -1,7 +1,7 @@
-import { Util } from '../../classes/util';
+import { Util } from './util/util';
 import { Memory } from './memory';
-import { CPU } from '../interfaces/cpu';
-import { Opcode } from "../../classes/opcode";
+import { CPU } from './interfaces/cpu';
+import { Opcode } from "./util/opcode";
 import { CPUCommon } from "./cpu-common";
 import { getInterruptState } from './interrupts';
 
@@ -76,7 +76,6 @@ export class TMS9900 extends CPUCommon implements CPU {
                 cyclesToRun = -1;
             } else {
                 // Execute instruction
-                this.instructionSubject.next(this.pc);
                 const tmpPC = this.pc;
                 const tmpCycles = this.getCycles();
                 const instruction = this.readMemoryWord(this.pc);

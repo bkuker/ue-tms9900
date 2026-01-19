@@ -1,10 +1,9 @@
-import {Decoder} from "../../classes/decoder";
-import {Util} from "../../classes/util";
-import {Opcode} from "../../classes/opcode";
-import {Log} from "../../classes/log";
-import {Observable, Subject} from "rxjs";
-import {CPU} from "../interfaces/cpu";
-import {Breakpoint, BreakpointType} from "../../classes/breakpoint";
+import {Decoder} from "./util/decoder";
+import {Util} from "./util/util";
+import {Opcode} from "./util/opcode";
+import {Log} from "./util/log";
+import {CPU} from "./interfaces/cpu";
+import {Breakpoint} from "./util/breakpoint";
 
 // Based on code from Classic99
 export abstract class CPUCommon implements CPU {
@@ -126,7 +125,6 @@ export abstract class CPUCommon implements CPU {
     protected auxBreakpoint: number | null;
     protected stoppedAtBreakpoint: boolean;
     protected tracing: boolean;
-    protected instructionSubject = new Subject<number>();
     protected log = Log.getLog();
 
     constructor() {
@@ -146,10 +144,6 @@ export abstract class CPUCommon implements CPU {
     abstract setTracing(tracing: boolean): void;
 
     abstract dumpProfile(): void;
-
-    instructionExecuting(): Observable<number> {
-        return this.instructionSubject.asObservable();
-    }
 
     // Build the word status lookup table
     buildWStatusLookupTable() {

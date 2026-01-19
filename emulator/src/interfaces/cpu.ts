@@ -1,6 +1,5 @@
 
-import {Observable} from "rxjs";
-import {Breakpoint} from "../../classes/breakpoint";
+import {Breakpoint} from "../util/breakpoint";
 
 export interface CPU {
     reset(): void;
@@ -24,5 +23,4 @@ export interface CPU {
     getCycleLog(): Int32Array;
     getCycleCount(): { start: number, end: number };
     setCycleCount(start: number, end: number): void;
-    instructionExecuting(): Observable<number>;
 }
