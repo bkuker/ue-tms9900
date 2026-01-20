@@ -12,8 +12,8 @@ RXBUF   DATA 0           ; RX buffer (bit 15 = 'char avail' flag, bits 0-7 char)
 *                Define the memory mapped I/O UART Addresses                   *
 ********************************************************************************
 *
-THRE    EQU >F000
-THRL    EQU >F002
+THRE    EQU >F00A
+THRL    EQU >F00C
 RRD     EQU >F004
 DRR     EQU >F006
 *
