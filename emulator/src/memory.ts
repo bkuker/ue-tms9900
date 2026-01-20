@@ -1,29 +1,81 @@
 
-import * as fs from 'fs';
+
 
 import { Log } from './util/log';
 import { CPU } from './interfaces/cpu';
 import { UeUart } from './ueuart';
 
+const log: Log = Log.getLog();
+
+export interface MemoryMapped {
+    getBaseAddress(): number;
+    getSize(): number;
+    readWord(addr: number, cpu: CPU | null): number;
+    writeWord(addr: number, w: number, cpu: CPU);
+}
+
+class RAM implements MemoryMapped {
+    private size;
+    private baseAddr: number;
+    protected ram: Uint8Array;
+
+    constructor(baseAddr: number, size: number) {
+        this.baseAddr = baseAddr;
+        this.ram = new Uint8Array(size);
+        this.size = size;
+    }
+
+    readWord(addr: number, cpu: CPU | null): number {
+        cpu?.addCycles(4);
+        const offset = addr - this.baseAddr;
+        return (this.ram[offset] << 8) | this.ram[offset + 1];
+    }
+
+    writeWord(addr: number, w: number, cpu: CPU) {
+        cpu.addCycles(4); //Probably a TI99 thing, ram behind video processor
+        const offset = addr - 0x1000;
+        this.ram[offset] = w >> 8;
+        this.ram[offset + 1] = w & 0xFF;
+    }
+
+    public getBaseAddress() {
+        return this.baseAddr;
+    };
+
+    public getSize() {
+        return this.size;
+    }
+}
+
+class ROM extends RAM {
+    constructor(baseAddr: number, size: number, romData: Uint8Array) {
+        super(baseAddr, size);
+        this.ram.set(romData);
+    }
+
+    writeWord(addr: number, w: number, cpu: CPU) {
+        log.warn(`Write to ROM @0x${addr.toString(16)}`);
+    }
+}
+
 export class Memory {
-
-
     private log: Log = Log.getLog();
     private rom: Uint8Array = new Uint8Array(12 * 1024); //TODO
     private ram: Uint8Array = new Uint8Array(12 * 1024);
 
-    private mux1 = new UeUart(0xF000);
+    mux0: UeUart;
+    mux1: UeUart;
 
-    constructor(rom: string) {
-       /* console.log(`Loading ${rom} @0x0000`);
-        const buffer = fs.readFileSync(rom);
-        this.rom = new Uint8Array(buffer);*/
+    private map: MemoryMapped[];
+
+    constructor(romData: Uint8Array) {
+        this.map = [
+            new ROM(0x0000, 2 * 1024, romData),
+            new RAM(0x1000, 12 * 1024),
+            this.mux0 = new UeUart(0xF000),
+            this.mux1 = new UeUart(0XF00A)
+        ];
     }
-
-    public reset(keepCart: boolean) {
-
-    }
-
 
     getWord(addr: number): number {
         return this.readWord(addr, null);
@@ -34,42 +86,26 @@ export class Memory {
         addr &= 0xFFFE;
         //TODO ADD CYCLES
 
-        var ret: number;
-        if (addr >= 0 && addr < 0x0FFE) {
-            //ROM
-            ret = (this.rom[addr] << 8) | this.rom[addr + 1];
-        } else if (addr >= 0x1000 && addr < 0x3FFE) {
-            cpu?.addCycles(4);
-            const offset = addr - 0x1000;
-            ret = (this.ram[offset] << 8) | this.ram[offset + 1];
-            //RAM
-        } else if (addr >= 0xF000 && addr <= 0xF008) {
-            ret = this.mux1.readWord(addr);
-        } else {
-            this.log.info(`Read from unmapped location ${addr.toString(16)}`);
-            ret = 0;
+        for (const mm of this.map) {
+            //console.log(mm.getBaseAddress(), mm.getSize(), addr);
+            if (addr >= mm.getBaseAddress() && addr < mm.getBaseAddress() + mm.getSize()) {
+                return mm.readWord(addr, cpu);
+            }
         }
-        //console.log(`readWord ${addr.toString(16)}: ${ret}`);
-        return ret;
+        this.log.info(`Read from unmapped location ${addr.toString(16)}`);
+        return 0;
     }
 
     public writeWord(addr: number, w: number, cpu: CPU) {
-        addr &= 0xFFFE;  
-        if (addr >= 0 && addr < 0x0FFE) {
-            this.log.info(`Write to ROM location ${addr.toString(16)}`);
-        } else if (addr >= 0x1000 && addr < 0x3FFE) {
-            cpu.addCycles(4); //Probably a TI99 thing, ram behind video processor
-            const offset = addr - 0x1000;
-            this.ram[offset] = w >> 8;
-            this.ram[offset + 1] = w & 0xFF;
-        } else if (addr >= 0xF000 && addr <= 0xF008) {
-            this.mux1.writeWord(addr, w);
-        } else {
-            this.log.info(`Write to unmapped location ${addr.toString(16)}`);
+        addr &= 0xFFFE;
+
+        for (const mm of this.map) {
+            if (addr >= mm.getBaseAddress() && addr < mm.getBaseAddress() + mm.getSize()) {
+                return mm.writeWord(addr, w, cpu);
+            }
         }
-
-
-
+        this.log.info(`Write to unmapped location ${addr.toString(16)}`);
+        return;
     }
 
 }

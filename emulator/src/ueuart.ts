@@ -10,8 +10,9 @@
 
 import { Log } from './util/log';
 import { InterruptSource, registerInterruptSource } from './interrupts';
+import { MemoryMapped } from './memory';
 
-export class UeUart implements InterruptSource {
+export class UeUart implements InterruptSource, MemoryMapped {
     private log: Log = Log.getLog();
 
     private rData: number;
@@ -20,7 +21,9 @@ export class UeUart implements InterruptSource {
     private tData: number;
     private tReady: boolean;
 
-    private baseAddr;
+    private baseAddr: number;
+
+    private byteConsumer: (byte: number) => void;
 
     constructor(baseAddr: number) {
         this.baseAddr = baseAddr;
@@ -31,6 +34,7 @@ export class UeUart implements InterruptSource {
 
         registerInterruptSource(this);
 
+        this.byteConsumer = (b) => console.log(`Serial byte ${b}`);
         /*
         process.stdin.setRawMode(true);
         process.stdin.resume();
@@ -41,13 +45,27 @@ export class UeUart implements InterruptSource {
                 process.exit(); // Ctrl+C
             this.rData = key.charCodeAt(0);
             this.rReady = true;
-        });
+        });*/
+    }
 
-        setInterval(() => {
-            //Ready to transmit every 4 ms
-            //a little slower than 300 baud
-            this.tReady = true;
-        }, 4);*/
+    public offerByteFromTerminal(byte: number): boolean {
+        if (this.rReady)
+            return false;
+        this.rData = byte;
+        this.rReady = true;
+        return true;
+    }
+
+    public setTerminalByteConsumer(f: (byte: number) => void): void {
+        this.byteConsumer = f;
+    }
+
+    public getBaseAddress() {
+        return this.baseAddr;
+    };
+
+    public getSize() {
+        return 10;
     }
 
     getInterruptCode(): number {
@@ -79,7 +97,10 @@ export class UeUart implements InterruptSource {
             //THRL, load data to send
             this.tData = w & 0xFF;
             //console.log("UART Write 0x" +this.tData.toString(16) + " " + String.fromCharCode(this.tData));
-            process.stdout.write(String.fromCharCode(this.tData));
+            setTimeout(() => {
+                this.byteConsumer(this.tData);
+                this.tReady = true;
+            }, 4);
             this.tReady = false;
         } else if (addr == this.baseAddr + 6) {
             //DRR, reset data ready
