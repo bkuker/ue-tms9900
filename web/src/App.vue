@@ -25,6 +25,8 @@ onMounted(async () => {
   const arrayBuffer = await response.arrayBuffer();
   const romContents = new Uint8Array(arrayBuffer);
 
+
+
   let memory = new Memory(romContents);
 
   mux0.value = memory.mux0;
