@@ -1,11 +1,11 @@
 {
   "files.exclude": {
-    "**/node_modules": false,
-    "**/dist": false,
-    "**/.git": false,
-    "**/.gitignore": false,
-    "**/package*.json": false,
-    "**/tsconfig*.json": false,
-    "**/.vscode": false
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.git": true,
+    "**/.gitignore": true,
+    "**/package*.json": true,
+    "**/tsconfig*.json": true,
+    "**/.vscode": true
   }
 }

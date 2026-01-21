@@ -220,6 +220,10 @@ export abstract class CPUCommon implements CPU {
         this.wp = value & 0xFFFE;
     }
 
+    getSt(){
+        return this.st;
+    }
+
     getInterruptMask(): number {
         return this.st & 0x000F;
     }

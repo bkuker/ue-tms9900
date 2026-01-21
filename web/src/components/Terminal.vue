@@ -20,18 +20,18 @@ onMounted(() => {
     cursorBlink: true,
     fontSize: 14,
     theme: {
-      background: '#1e1e1e',
+      background: '#252525',
       foreground: '#d4d4d4'
     }
   })
-  
+
   term.open(terminalRef.value)
-  
+
   // Emit on each keystroke
   term.onData(data => {
     emit('byte', data.charCodeAt(0))
   })
-  
+
   // Optional: also emit on key events for more detail
   term.onKey(({ key, domEvent }) => {
     // This gives you the actual key and DOM event
@@ -51,10 +51,16 @@ const write = (byte) => {
 defineExpose({ write })
 </script>
 
-<style>
+<style scoped>
 .terminal-container {
-  width: fit-content;  /* Shrink to terminal's actual size */
-  height: 400px;       /* Or whatever height you want */
-  display: inline-block;
+  width: fit-content;
+  /* Shrink to terminal's actual size */
+
+  border: 30px solid #4A392E;
+  border-radius: 20px;
+  padding: 10px 0 10px 10px;
+  background-color: #252525;
 }
+
+.xterm-viewport {}
 </style>
