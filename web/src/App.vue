@@ -12,6 +12,7 @@ const term0 = ref();
 const term1 = ref();
 
 const cpu = ref();
+const timer = ref();
 
 const running = ref(true);
 
@@ -21,13 +22,15 @@ const step = () => {
 }
 
 onMounted(async () => {
-  const response = await fetch("hellorld.rom");
+  const response = await fetch("hellorld2.rom");
   const arrayBuffer = await response.arrayBuffer();
   const romContents = new Uint8Array(arrayBuffer);
 
 
 
   let memory = new Memory(romContents);
+
+  timer.value = memory.timer;
 
   mux0.value = memory.mux0;
   memory.mux0.setTerminalByteConsumer(term0.value.write);
@@ -67,14 +70,17 @@ onMounted(async () => {
   <button @click="running = true" :disabled="running">Run</button>
   <button @click="running = false" :disabled="!running">Halt</button>
   <button @click="step" :disabled="running">Step</button>
+  <div v-if="timer">
+    Timer: <input type="range" min="0" max="50" v-model.number="timer.hz">{{ timer.hz }}Hz
+  </div>
 </template>
 
 <style scoped>
-  .term {
-    display: inline-block;
-    margin: 10px 30px 10px 30px;
-    padding: 10px;
-    background-color: tan;
-    border-radius: 30px;
-  }
+.term {
+  display: inline-block;
+  margin: 10px 30px 10px 30px;
+  padding: 10px;
+  background-color: tan;
+  border-radius: 30px;
+}
 </style>

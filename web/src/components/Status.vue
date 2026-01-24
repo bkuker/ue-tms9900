@@ -12,6 +12,8 @@
             <dd>{{ st.toString(2).padStart(16, "0") }}</dd>
             <dt>Cycles:</dt>
             <dd>{{ cycles.toLocaleString() }}</dd>
+            <dt>Interrupts:</dt>
+            <dd>{{ int.intReq }} <span v-if="int.intReq">{{ int.ic }}</span></dd>
         </dl>
     </div>
 </template>
@@ -19,16 +21,18 @@
 <script setup>
 import { defineProps, ref, onMounted, onUnmounted } from 'vue'
 import { List } from '@ue-tms9900/emulator/util/List';
+import { getInterruptState } from '@ue-tms9900/emulator/interrupts';
 
-const props = defineProps(['cpu'])
+const props = defineProps(['cpu']);
 const pc = ref(0);
 const wp = ref(0);
 const st = ref(0);
 const cycles = ref(0);
 const list = ref(false);
+const int = ref({});
 
 onMounted(async () => {
-    list.value = new List(await (await fetch("hellorld.lst")).text());
+    list.value = new List(await (await fetch("hellorld2.lst")).text());
     console.log(list.value);
 });
 
@@ -39,6 +43,7 @@ function update() {
         wp.value = cpu.getWp();
         st.value = cpu.getSt();
         cycles.value = cpu.getCycles();
+        int.value = getInterruptState();
     }
     requestAnimationFrame(update);
 }

@@ -1,0 +1,191 @@
+ASM990 2.4.6                                Fri Jan 23 20:39:39 2026 Page 0001
+
+
+1000          1          RORG >1000       ; RAM start
+1000          2  OSWP    BSS 32           ; Set aside 32 bytes/16 words for prim
+              3  
+1020 0000     4  T1WP    DATA 0
+1022 0000     5  T1PC    DATA 0
+1024 0000     6  T1ST    DATA 0
+              7  
+1026 0000     8  T2WP    DATA 0
+1028 0000     9  T2PC    DATA 0
+102A 0000    10  T2ST    DATA 0 
+             11  
+102C 0000    12  TCUR    DATA 0
+             13   
+0000         14          RORG >0000
+0000 1000    15          DATA >1000         
+0002 0100'   16          DATA INIT           
+             17  
+003C         18          RORG >003C
+003C 1000    19          DATA >1000          
+003E 0160'   20          DATA TIMER        
+             21  
+0100         22          RORG >0100
+0100 0200    23  INIT    LI 0,>2000              ;Set up Task 1 TCB
+0102 2000 
+0104 C800    24          MOV 0, @T1WP
+0106 1020'
+0108 0200    25          LI 0,TOP1
+010A 0200'
+010C C800    26          MOV 0, @T1PC
+010E 1022'
+0110 0200    27          LI 0,>00FF
+0112 00FF 
+0114 C800    28          MOV 0,@T1ST
+0116 1024'
+             29  
+0118 0200    30          LI 0,>3000              ;Set up Task 2 TCB
+011A 3000 
+011C C800    31          MOV 0, @T2WP
+011E 1026'
+0120 0200    32          LI 0,TOP2
+0122 0300'
+0124 C800    33          MOV 0, @T2PC
+0126 1028'
+0128 0200    34          LI 0,>00FF
+012A 00FF 
+012C C800    35          MOV 0,@T2ST
+012E 102A'
+             36  
+0130 0300    37          LIMI 0
+0132 0000 
+             38  
+0134 C360    39  T1      MOV @T1WP,13
+0136 1020'
+0138 C3A0    40          MOV @T1PC,14
+013A 1022'
+013C C3E0    41          MOV @T1ST,15
+013E 1024'
+0140 0200    42          LI 0,>0
+0142 0000 
+0144 C800    43          MOV 0,@TCUR
+ASM990 2.4.6                                Fri Jan 23 20:39:39 2026 Page 0002
+
+
+0146 102C'
+0148 0380    44          RTWP
+             45  
+014A C360    46  T2      MOV @T2WP,13
+014C 1026'
+014E C3A0    47          MOV @T2PC,14
+0150 1028'
+0152 C3E0    48          MOV @T2ST,15
+0154 102A'
+0156 0200    49          LI 0,>1
+0158 0001 
+015A C800    50          MOV 0,@TCUR
+015C 102C'
+015E 0380    51          RTWP
+             52  
+0160 0300    53  TIMER   LIMI 0                  ;INT OFF
+0162 0000 
+0164 04E0    54          CLR >F0F0            ;Clear timer int
+0166 F0F0 
+0168 C060    55          MOV @TCUR, 1             ;Load current task into R1
+016A 102C'
+016C 1608    56          JNE S2
+             57  
+016E C80D    58  S1      MOV 13,@T1WP
+0170 1020'
+0172 C80E    59          MOV 14,@T1PC
+0174 1022'
+0176 C80F    60          MOV 15,@T1ST
+0178 1024'
+017A 0460    61          B T2
+017C 014A'
+             62  
+017E C80D    63  S2      MOV 13,@T2WP
+0180 1026'
+0182 C80E    64          MOV 14,@T2PC
+0184 1028'
+0186 C80F    65          MOV 15,@T2ST
+0188 102A'
+018A 0460    66          B T1
+018C 0134'
+             67  
+             68  
+0200         69          RORG >0200
+0200 0202    70  TOP1    LI 2,STR1           ; Store the text address in R3
+0202 0220'
+0204 0203    71          LI 3,>F000          ; Store the MMIO THRE address in R3
+0206 F000 
+0208 0204    72          LI 4,>F002          ; Store the MMIO THRL address in R4
+020A F002 
+             73  
+020C C053    74  PR1     MOV *3, 1           ; Load R1 with the value pointed at
+020E 0241    75          ANDI 1, >0001       ; Do an AND to eliminate everything
+0210 0001 
+0212 16FC    76          JNE PR1             ; If equal to 0, loop back and test
+0214 C052    77          MOV *2, 1           ; Load R1 with value pointed at by 
+0216 C501    78          MOV 1, *4           ; Move the value into THRL
+             79  
+0218 05C2    80  TST1    INCT 2              ; Increment R2 by a word
+021A C052    81          MOV *2, 1           ; Load R1 with value pointed at by 
+021C 13F1    82          JEQ TOP1             ; If zero, restart the whole loop
+ASM990 2.4.6                                Fri Jan 23 20:39:39 2026 Page 0003
+
+
+021E 10F6    83          JMP PR1             ; Else, run the print loop again
+             84  
+0220 0048    85  STR1    DATA >0048          ; ASCII "H"
+0222 0045    86          DATA >0045          ; ASCII "E"
+0224 004C    87          DATA >004C          ; ASCII "L"
+0226 004C    88          DATA >004C          ; ASCII "L"
+0228 004F    89          DATA >004F          ; ASCII "O"
+022A 0052    90          DATA >0052          ; ASCII "R"
+022C 004C    91          DATA >004C          ; ASCII "L"
+022E 0044    92          DATA >0044          ; ASCII "D"
+0230 0021    93          DATA >0021          ; ASCII "!"
+0232 000A    94          DATA >000A          ; LF
+0234 000D    95          DATA >000D          ; CR
+0236 0000    96          DATA >0000          ; Null terminator
+             97  
+0300         98          RORG >0300
+0300 0202    99  TOP2    LI 2,STR2           ; Store the text address in R3
+0302 0320'
+0304 0203   100          LI 3,>F00A          ; Store the MMIO THRE address in R3
+0306 F00A 
+0308 0204   101          LI 4,>F00C          ; Store the MMIO THRL address in R4
+030A F00C 
+            102  
+030C C053   103  PR2     MOV *3, 1           ; Load R1 with the value pointed at
+030E 0241   104          ANDI 1, >0001       ; Do an AND to eliminate everything
+0310 0001 
+0312 16FC   105          JNE PR2             ; If equal to 0, loop back and test
+0314 C052   106          MOV *2, 1           ; Load R1 with value pointed at by 
+0316 C501   107          MOV 1, *4           ; Move the value into THRL
+            108  
+0318 05C2   109  TST2    INCT 2              ; Increment R2 by a word
+031A C052   110          MOV *2, 1           ; Load R1 with value pointed at by 
+031C 13F1   111          JEQ TOP2             ; If zero, restart the whole loop
+031E 10F6   112          JMP PR2             ; Else, run the print loop again
+            113  
+0320 0054   114  STR2    DATA >0054          ; ASCII "T"
+0322 004D   115          DATA >004D          ; ASCII "M"
+0324 0053   116          DATA >0053          ; ASCII "S"
+0326 002D   117          DATA >002D          ; ASCII "-"
+0328 0039   118          DATA >0039          ; ASCII "9"
+032A 0039   119          DATA >0039          ; ASCII "9"
+032C 0030   120          DATA >0030          ; ASCII "0"
+032E 0030   121          DATA >0030          ; ASCII "0"
+0330 0021   122          DATA >0021          ; ASCII "!"
+0332 000A   123          DATA >000A          ; LF
+0334 000D   124          DATA >000D          ; CR
+0336 0000   125          DATA >0000          ; Null terminator
+            126  
+            127          END
+ASM990 2.4.6                                Fri Jan 23 20:39:39 2026 Page 0004
+
+
+INIT     0100'  OSWP     1000'  PR1      020C'  PR2      030C'  R0       0000   
+R1       0001   R10      000A   R11      000B   R12      000C   R13      000D   
+R14      000E   R15      000F   R2       0002   R3       0003   R4       0004   
+R5       0005   R6       0006   R7       0007   R8       0008   R9       0009   
+S1       016E'  S2       017E'  STR1     0220'  STR2     0320'  T1       0134'  
+T1PC     1022'  T1ST     1024'  T1WP     1020'  T2       014A'  T2PC     1028'  
+T2ST     102A'  T2WP     1026'  TCUR     102C'  TIMER    0160'  TOP1     0200'  
+TOP2     0300'  TST1     0218'  TST2     0318'  
+
+0 Errors in assembly

@@ -1,9 +1,7 @@
-
-
-
 import { Log } from './util/log';
 import { CPU } from './interfaces/cpu';
 import { UeUart } from './ueuart';
+import { Timer } from './timer';
 
 const log: Log = Log.getLog();
 
@@ -32,6 +30,7 @@ class RAM implements MemoryMapped {
     }
 
     writeWord(addr: number, w: number, cpu: CPU) {
+        //console.log(`Write to 0x${addr.toString(16)}: 0x${w.toString(16)}`);
         cpu.addCycles(4); //Probably a TI99 thing, ram behind video processor
         const offset = addr - 0x1000;
         this.ram[offset] = w >> 8;
@@ -65,6 +64,7 @@ export class Memory {
 
     mux0: UeUart;
     mux1: UeUart;
+    timer: Timer;
 
     private map: MemoryMapped[];
 
@@ -73,7 +73,8 @@ export class Memory {
             new ROM(0x0000, 2 * 1024, romData),
             new RAM(0x1000, 12 * 1024),
             this.mux0 = new UeUart(0xF000),
-            this.mux1 = new UeUart(0XF00A)
+            this.mux1 = new UeUart(0XF00A),
+            this.timer = new Timer(0xF0F0, 15)
         ];
     }
 
