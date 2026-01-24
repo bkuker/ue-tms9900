@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import { TMS9900 } from '@ue-tms9900/emulator/tms9900';
-import { Memory } from '@ue-tms9900/emulator/memory';
+import { UeTMS990 } from '@ue-tms9900/emulator/UeTMS990';
 import { Command } from 'commander';
 
 //Get Command Line
@@ -21,7 +21,7 @@ async function main(): Promise<void> {
     const buffer = fs.readFileSync(rom);
     let romContents = new Uint8Array(buffer);
 
-    let memory = new Memory(romContents);
+    let ue = new UeTMS990(romContents);
 
     process.stdin.setRawMode(true);
     process.stdin.resume();
@@ -30,17 +30,15 @@ async function main(): Promise<void> {
         if (key === "\u0003")
             process.exit(); // Ctrl+C
         else
-            memory.mux0.offerByteFromTerminal(key.charCodeAt(0));
+            ue.mux0.offerByteFromTerminal(key.charCodeAt(0));
     });
-    memory.mux0.setTerminalByteConsumer(b => process.stdout.write(String.fromCharCode(b)));
+    ue.mux0.setTerminalByteConsumer(b => process.stdout.write(String.fromCharCode(b)));
 
-
-    let cpu = new TMS9900(memory);
-    cpu.reset();
+    ue.cpu.reset();
 
     //Run the CPU Continuously...
     while (true) {
-        cpu.run(1000, false);
+        ue.cpu.run(1000, false);
         //But yeild every so often so UARTs and other things 
         //do their thing
         await new Promise(r => setImmediate(r));

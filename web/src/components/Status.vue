@@ -10,6 +10,7 @@
             <dd>0x{{ wp.toString(16).padStart(4, "0") }}</dd>
             <dt>Status:</dt>
             <dd>{{ st.toString(2).padStart(16, "0") }}</dd>
+            <dd><StatusRegister v-model="st"/></dd>
             <dt>Cycles:</dt>
             <dd>{{ cycles.toLocaleString() }}</dd>
             <dt>Interrupts:</dt>
@@ -21,6 +22,7 @@
 <script setup>
 import { defineProps, ref, onMounted, onUnmounted } from 'vue'
 import { List } from '@ue-tms9900/emulator/util/List';
+import StatusRegister from './StatusRegister.vue';
 import { getInterruptState } from '@ue-tms9900/emulator/interrupts';
 
 const props = defineProps(['cpu']);

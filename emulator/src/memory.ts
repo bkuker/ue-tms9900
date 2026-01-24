@@ -1,7 +1,6 @@
 import { Log } from './util/log';
 import { CPU } from './interfaces/cpu';
-import { UeUart } from './ueuart';
-import { Timer } from './timer';
+
 
 const log: Log = Log.getLog();
 
@@ -12,7 +11,7 @@ export interface MemoryMapped {
     writeWord(addr: number, w: number, cpu: CPU);
 }
 
-class RAM implements MemoryMapped {
+export class RAM implements MemoryMapped {
     private size;
     private baseAddr: number;
     protected ram: Uint8Array;
@@ -46,7 +45,7 @@ class RAM implements MemoryMapped {
     }
 }
 
-class ROM extends RAM {
+export class ROM extends RAM {
     constructor(baseAddr: number, size: number, romData: Uint8Array) {
         super(baseAddr, size);
         this.ram.set(romData);
@@ -62,20 +61,12 @@ export class Memory {
     private rom: Uint8Array = new Uint8Array(12 * 1024); //TODO
     private ram: Uint8Array = new Uint8Array(12 * 1024);
 
-    mux0: UeUart;
-    mux1: UeUart;
-    timer: Timer;
+
 
     private map: MemoryMapped[];
 
-    constructor(romData: Uint8Array) {
-        this.map = [
-            new ROM(0x0000, 2 * 1024, romData),
-            new RAM(0x1000, 12 * 1024),
-            this.mux0 = new UeUart(0xF000),
-            this.mux1 = new UeUart(0XF00A),
-            this.timer = new Timer(0xF0F0, 15)
-        ];
+    constructor(map : MemoryMapped[]) {
+        this.map = map;
     }
 
     getWord(addr: number): number {
