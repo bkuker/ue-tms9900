@@ -26,7 +26,6 @@ function update() {
 requestAnimationFrame(update);
 
 watch(() => props.list, (listing) => {
-    console.log(listing);
     list.value = {};
     if (listing) {
         const re = /^[0-9a-fA-F]{4}/;
@@ -34,7 +33,8 @@ watch(() => props.list, (listing) => {
             if (re.test(line)) {
                 let addr = parseInt(line.substring(0, 4), 16);
                 let asm = line.substring(17);
-                list.value[addr] = asm;
+                if ( asm )
+                    list.value[addr] = asm;
             }
         }
     }

@@ -60,11 +60,11 @@ const uploadFiles = async () => {
         const romFile = selectedFiles.value.find(f => f.name.endsWith('.rom'));
         const listFile = selectedFiles.value.find(f => f.name.endsWith('.lst'));
 
-        // Read ROM file as ArrayBuffer
-        const romData = await readFileAsArrayBuffer(romFile);
+        // Read ROM file as Uint8Array
+        const romData = await readFileAsUint8Array(romFile);
 
-        // Read LIST file as text
-        const listData = await readFileAsText(listFile);
+        // Read LIST file as text (if present)
+        const listData = listFile ? await readFileAsText(listFile) : null;
 
         // Emit both files to parent component
         emit('filesUploaded', {
@@ -72,14 +72,15 @@ const uploadFiles = async () => {
                 name: romFile.name,
                 data: romData
             },
-            list: {
+            list: listFile ? {
                 name: listFile.name,
                 data: listData
-            }
+            } : null
         });
 
         // Reset
         selectedFiles.value = [];
+        document.getElementById('files').value = '';
         error.value = '';
     } catch (err) {
         error.value = 'Error reading files: ' + err.message;
@@ -87,10 +88,10 @@ const uploadFiles = async () => {
     }
 };
 
-const readFileAsArrayBuffer = (file) => {
+const readFileAsUint8Array = (file) => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
+        reader.onload = () => resolve(new Uint8Array(reader.result));
         reader.onerror = reject;
         reader.readAsArrayBuffer(file);
     });

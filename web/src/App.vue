@@ -1,41 +1,48 @@
 <script setup lang="ts">
 import Terminal from './components/Terminal.vue';
 import Status from './components/Status.vue';
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { UeTMS990 } from '@ue-tms9900/emulator/UeTMS990';
 import RomUpload from './components/RomUpload.vue';
 import List from './components/List.vue';
 
-const ue = ref();
+const ue = ref<UeTMS990>();
 const term0 = ref();
 const term1 = ref();
 const running = ref(true);
-const list = ref();
-
+const list = ref<string>();
+const romImage = ref<Uint8Array>();
 
 const step = () => {
   ue.value.cpu.run(1, false);
 }
 
-function handleUpload(data){
-  console.log(data);
+function handleUpload(files){
+  console.log(files);
+  romImage.value = files.rom.data;
+  list.value = files.list.data;
 }
+
+watch(romImage, (romImage)=>{
+  ue.value = new UeTMS990(romImage);
+
+  running.value = false;
+  ue.value.mux0.setTerminalByteConsumer((b)=>term0.value.write(b));
+  ue.value.mux1.setTerminalByteConsumer((b)=>term1.value.write(b));
+  ue.value.cpu.reset();
+  //TODO Make Interrupts a thing that resets
+});
 
 onMounted(async () => {
   const response = await fetch("hellorld2.rom");
   const arrayBuffer = await response.arrayBuffer();
-  const romContents = new Uint8Array(arrayBuffer);
+  romImage.value = new Uint8Array(arrayBuffer);
 
   list.value = await (await fetch("hellorld2.lst")).text();
 
-  ue.value = new UeTMS990(romContents);
-
-  ue.value.mux0.setTerminalByteConsumer((b)=>term0.value.write(b));
-  ue.value.mux1.setTerminalByteConsumer((b)=>term1.value.write(b));
-  ue.value.cpu.reset();
 
   while (true) {
-    if (running.value) {
+    if (running.value && ue.value) {
       ue.value.cpu.run(2000, false);
       //But yield every so often so UARTs and other things 
       //do their thing
@@ -67,9 +74,9 @@ onMounted(async () => {
     <div>
       Timer: <input type="range" min="0" max="50" v-model.number="ue.timer.hz">{{ ue.timer.hz }}Hz
     </div>
-    <!--
+    
     <RomUpload @files-uploaded="handleUpload"/>
--->
+
     <List :list="list" :cpu="ue.cpu"/>
   </div>
 </template>
