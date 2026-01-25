@@ -3,21 +3,30 @@ import Terminal from './components/Terminal.vue';
 import Status from './components/Status.vue';
 import { ref, onMounted } from 'vue';
 import { UeTMS990 } from '@ue-tms9900/emulator/UeTMS990';
+import RomUpload from './components/RomUpload.vue';
+import List from './components/List.vue';
 
 const ue = ref();
 const term0 = ref();
 const term1 = ref();
 const running = ref(true);
+const list = ref();
 
 
 const step = () => {
   ue.value.cpu.run(1, false);
 }
 
+function handleUpload(data){
+  console.log(data);
+}
+
 onMounted(async () => {
   const response = await fetch("hellorld2.rom");
   const arrayBuffer = await response.arrayBuffer();
   const romContents = new Uint8Array(arrayBuffer);
+
+  list.value = await (await fetch("hellorld2.lst")).text();
 
   ue.value = new UeTMS990(romContents);
 
@@ -41,7 +50,7 @@ onMounted(async () => {
 
 <template>
   <h1>UE TMS990 Homebrew Emulator</h1>
-  <div v-if="ue">
+  <div v-if="ue" class="ue">
     <div class="term">
       <Terminal ref="term0" @byte="(b) => ue.mux0.offerByteFromTerminal(b)"></Terminal>
       MUX0
@@ -58,6 +67,10 @@ onMounted(async () => {
     <div>
       Timer: <input type="range" min="0" max="50" v-model.number="ue.timer.hz">{{ ue.timer.hz }}Hz
     </div>
+    <!--
+    <RomUpload @files-uploaded="handleUpload"/>
+-->
+    <List :list="list" :cpu="ue.cpu"/>
   </div>
 </template>
 
@@ -68,5 +81,12 @@ onMounted(async () => {
   padding: 10px;
   background-color: tan;
   border-radius: 30px;
+}
+
+button {
+  margin-left: 10px;
+}
+.ue > * {
+  margin-bottom: 10px;
 }
 </style>
