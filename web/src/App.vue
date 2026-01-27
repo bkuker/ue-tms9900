@@ -25,8 +25,6 @@ function handleUpload(files){
 
 watch(romImage, (romImage)=>{
   ue.value = new UeTMS990(romImage);
-
-  running.value = false;
   ue.value.mux0.setTerminalByteConsumer((b)=>term0.value.write(b));
   ue.value.mux1.setTerminalByteConsumer((b)=>term1.value.write(b));
   ue.value.cpu.reset();

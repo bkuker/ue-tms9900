@@ -1,11 +1,16 @@
         AORG >0000      ;ROM Start
-        DATA >1000      ;Reset WP
-        DATA INIT       ;Reset PC
+        DATA >1111      ;Reset WP
+        DATA VAR1
 
         AORG >0100
-INIT    B INIT          ;GOTO INIT
+        DATA >2222
+        DATA OOPS
 
-        AORG >1000      ;RAM Start
-OSWP    BSS 32          ;Workspace
-VAR1    BSS 2           ;A Variable
+        AORG >0200
+        DATA >3333
+
+        DORG >1000
+VAR1    BSS 32
+        DORG >1004
+OOPS    BSS 2
         END

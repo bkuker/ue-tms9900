@@ -1,72 +1,82 @@
-        RORG >1000       ; RAM start
-OSWP    BSS 32           ; Set aside 32 bytes/16 words for primary workspace
+        DORG >1000      ; RAM start
+OSWP    BSS 32          ; Set aside 32 bytes/16 words for primary workspace
 
-T1WP    DATA 0
-T1PC    DATA 0
-T1ST    DATA 0
+TCBS
+TCB1
+        BSS 2           ;Workspace
+        BSS 2           ;Program Counter
+        BSS 2           ;Status
+TCB2    BSS 2
+        BSS 2
+        BSS 2
 
-T2WP    DATA 0
-T2PC    DATA 0
-T2ST    DATA 0 
-
-TCUR    DATA 0
+TCUR    BSS 2
  
-        RORG >0000
-        DATA >1000         
+        AORG >0000
+        DATA OSWP         
         DATA INIT           
 
-        RORG >003C
-        DATA >1000          
+        AORG >003C
+        DATA OSWP          
         DATA TIMER        
 
-        RORG >0100
-INIT    LI 0,>2000              ;Set up Task 1 TCB
-        MOV 0, @T1WP
-        LI 0,TOP1
-        MOV 0, @T1PC
-        LI 0,>00FF
-        MOV 0,@T1ST
+        AORG >0100
 
-        LI 0,>3000              ;Set up Task 2 TCB
-        MOV 0, @T2WP
-        LI 0,TOP2
-        MOV 0, @T2PC
-        LI 0,>00FF
-        MOV 0,@T2ST
+INIT    LI 0,TCB1       ;Set up Task 1 TCB
+        LI 1,T1RAM
+        MOV 1, *0+
+        LI 1,TOP1
+        MOV 1, *0+
+        LI 1,>00FF
+        MOV 1,*0+
 
-        LIMI 0
+        LI 0,TCB2       ;Set up Task 1 TCB
+        LI 1,T2RAM      
+        MOV 1, *0+
+        LI 1,TOP2
+        MOV 1, *0+
+        LI 1,>00FF
+        MOV 1, *0+
+        JMP T1
 
-T1      MOV @T1WP,13
-        MOV @T1PC,14
-        MOV @T1ST,15
-        LI 0,>0
-        MOV 0,@TCUR
-        RTWP
+;        LIMI 15        ;Cant do this because assumes T1 is already running
+;IDLE    JMP IDLE
 
-T2      MOV @T2WP,13
-        MOV @T2PC,14
-        MOV @T2ST,15
+
+TIMER   LIMI 0          ;INT OFF
+        CLR @>F0F0      ;Clear timer int
+        MOV @TCUR, 1    ;Load current task into R1
+        JNE S2
+
+S1      LI 0,TCB1       ;Store away Task 1
+        MOV 13,*0+
+        MOV 14,*0+
+        MOV 15,*0+
+T2      LI 0,TCB2       ;Load Task 2
+        MOV *0+,13
+        MOV *0+,14
+        MOV *0+,15
         LI 0,>1
         MOV 0,@TCUR
         RTWP
 
-TIMER   LIMI 0                  ;INT OFF
-        CLR >F0F0            ;Clear timer int
-        MOV @TCUR, 1             ;Load current task into R1
-        JNE S2
+S2      LI 0,TCB2       ;Store away Task 2
+        MOV 13,*0+
+        MOV 14,*0+
+        MOV 15,*0+
+        JMP T1
+T1      LI 0,TCB1       ;Load Task 2
+        MOV *0+,13
+        MOV *0+,14
+        MOV *0+,15
+        LI 0,>0
+        MOV 0,@TCUR
+        RTWP
 
-S1      MOV 13,@T1WP
-        MOV 14,@T1PC
-        MOV 15,@T1ST
-        B T2
+        DORG >2000
+T1RAM   BSS 2           ;Workspace
 
-S2      MOV 13,@T2WP
-        MOV 14,@T2PC
-        MOV 15,@T2ST
-        B T1
-
-
-        RORG >0200
+        AORG >0200
 TOP1    LI 2,STR1           ; Store the text address in R3
         LI 3,>F000          ; Store the MMIO THRE address in R3
         LI 4,>F002          ; Store the MMIO THRL address in R4
@@ -95,7 +105,9 @@ STR1    DATA >0048          ; ASCII "H"
         DATA >000D          ; CR
         DATA >0000          ; Null terminator
 
-        RORG >0300
+        DORG >3000
+T2RAM   BSS 2           ;Workspace
+        AORG >0300
 TOP2    LI 2,STR2           ; Store the text address in R3
         LI 3,>F00A          ; Store the MMIO THRE address in R3
         LI 4,>F00C          ; Store the MMIO THRL address in R4

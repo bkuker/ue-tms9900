@@ -29,10 +29,13 @@ watch(() => props.list, (listing) => {
     list.value = {};
     if (listing) {
         const re = /^[0-9a-fA-F]{4}/;
+        const xas99 = listing.startsWith("XAS99");
         for (let line of listing.split(/\r?\n/)) {
+            if ( xas99 )
+                line = line.substring(5);
             if (re.test(line)) {
                 let addr = parseInt(line.substring(0, 4), 16);
-                let asm = line.substring(17);
+                let asm = line.substring(xas99?14:17);
                 if ( asm )
                     list.value[addr] = asm;
             }

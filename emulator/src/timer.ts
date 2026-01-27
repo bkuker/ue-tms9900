@@ -16,7 +16,7 @@ export class Timer implements InterruptSource, MemoryMapped {
         this.baseAddr = baseAddr;
         this.irq = irq;
         registerInterruptSource(this);
-        this.hz = 0;
+        this.hz = 2;
     }
 
     //Timer Interrupt
