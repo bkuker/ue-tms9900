@@ -77,6 +77,7 @@ export class Memory {
     public readWord(addr: number, cpu: CPU | null): number {
         addr &= 0xFFFE;
         //TODO ADD CYCLES
+        cpu?.addCycles(4);
 
         for (const mm of this.map) {
             //console.log(mm.getBaseAddress(), mm.getSize(), addr);
@@ -90,7 +91,7 @@ export class Memory {
 
     public writeWord(addr: number, w: number, cpu: CPU) {
         addr &= 0xFFFE;
-
+        cpu.addCycles(4);
         for (const mm of this.map) {
             if (addr >= mm.getBaseAddress() && addr < mm.getBaseAddress() + mm.getSize()) {
                 return mm.writeWord(addr, w, cpu);

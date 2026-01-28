@@ -1,80 +1,76 @@
+;*************************************************
+;                       Scheduler RAM
+
         DORG >1000      ; RAM start
 OSWP    BSS 32          ; Set aside 32 bytes/16 words for primary workspace
 
-TCBS
-TCB1
-        BSS 2           ;Workspace
-        BSS 2           ;Program Counter
-        BSS 2           ;Status
-TCB2    BSS 2
-        BSS 2
-        BSS 2
+TCBS                    ; Start of TCB Table
+        BSS 6           ; WP,PC,ST
+        BSS 6
+TCBE                    ; End of TCB Table
 
-TCUR    BSS 2
- 
-        AORG >0000
-        DATA OSWP         
-        DATA INIT           
+TCUR    BSS 2           ; Pointer to TCB for current task
 
-        AORG >003C
-        DATA OSWP          
-        DATA TIMER        
+;*************************************************
+;                       ROM Start
+
+        AORG >0000      ; Reset Vector...
+        DATA OSWP       ;       OS workspace addr
+        DATA INIT       ;       Init code
+
+        AORG >003C      ; Timer Vector
+        DATA OSWP       ;       OS Workspace
+        DATA TIMER      ;       Scheduler code
+
 
         AORG >0100
+INITDATA                ; Initial Ram Values
+        DATA T1RAM, TOP1, >00FF         ; Task 1 TCB
+        DATA T2RAM, TOP2, >00FF         ; Task 2 TCB
+INITEND
 
-INIT    LI 0,TCB1       ;Set up Task 1 TCB
-        LI 1,T1RAM
-        MOV 1, *0+
-        LI 1,TOP1
-        MOV 1, *0+
-        LI 1,>00FF
-        MOV 1,*0+
+INIT    
+        LI 0, INITDATA   ; Copy TCBs from ROM to RAM
+        LI 1, TCBS
+        LI 2, (INITEND-INITDATA)/2
+COPY    MOV *0+,*1+
+        DEC 2
+        JNE COPY
 
-        LI 0,TCB2       ;Set up Task 1 TCB
-        LI 1,T2RAM      
-        MOV 1, *0+
-        LI 1,TOP2
-        MOV 1, *0+
-        LI 1,>00FF
-        MOV 1, *0+
-        JMP T1
-
-;        LIMI 15        ;Cant do this because assumes T1 is already running
-;IDLE    JMP IDLE
+                        ; Load and run Task 1
+        LI 1,TCBS       ; Set the first task as the "next" to run
+        JMP RES         ; Jump straight to resume it!
 
 
-TIMER   LIMI 0          ;INT OFF
-        CLR @>F0F0      ;Clear timer int
-        MOV @TCUR, 1    ;Load current task into R1
-        JNE S2
+TIMER   LIMI 0          ; INT OFF
+        CLR @>F0F0      ; MMIO Write to clear timer interrupt
 
-S1      LI 0,TCB1       ;Store away Task 1
-        MOV 13,*0+
+        MOV @TCUR,0     ;Load current TCB address to R0
+        MOV 0,1         ;Copy to R1...
+        AI 1,>6         ;and increment to next TCB
+
+                        ;Loop back around to the first task
+        CI 1,TCBE       ;If next task is NOT past the end of the TCB Table
+        JNE SWAP        ;THEN goto SWAP
+        LI 1,TCBS       ;ELSE set it to the first one
+SWAP
+
+SUS                     ;Suspend task to TCB in R0
+        MOV 13,*0+      ; Save context to TCB
         MOV 14,*0+
         MOV 15,*0+
-T2      LI 0,TCB2       ;Load Task 2
-        MOV *0+,13
-        MOV *0+,14
-        MOV *0+,15
-        LI 0,>1
-        MOV 0,@TCUR
+RES                     ;Resume task from TCB in R1
+        MOV 1,@TCUR     ; Save as current task
+        MOV *1+,13      ; Restore context from TCB
+        MOV *1+,14
+        MOV *1+,15
         RTWP
 
-S2      LI 0,TCB2       ;Store away Task 2
-        MOV 13,*0+
-        MOV 14,*0+
-        MOV 15,*0+
-        JMP T1
-T1      LI 0,TCB1       ;Load Task 2
-        MOV *0+,13
-        MOV *0+,14
-        MOV *0+,15
-        LI 0,>0
-        MOV 0,@TCUR
-        RTWP
 
+;*************************************************
+;                       Task 1
         DORG >2000
-T1RAM   BSS 2           ;Workspace
+T1RAM   BSS 32           ;Workspace
 
         AORG >0200
 TOP1    LI 2,STR1           ; Store the text address in R3
@@ -105,8 +101,10 @@ STR1    DATA >0048          ; ASCII "H"
         DATA >000D          ; CR
         DATA >0000          ; Null terminator
 
+;*************************************************
+;                       Task 2
         DORG >3000
-T2RAM   BSS 2           ;Workspace
+T2RAM   BSS 32           ;Workspace
         AORG >0300
 TOP2    LI 2,STR2           ; Store the text address in R3
         LI 3,>F00A          ; Store the MMIO THRE address in R3

@@ -9,7 +9,7 @@ export class TMS9900 extends CPUCommon implements CPU {
 
     static readonly CYCLES_PER_FRAME = 50000;
     static readonly CYCLES_PER_SCANLINE = 194; // 50,000 / 194 = 258 lines on the screen.
-    static readonly PROFILE = false;
+    static readonly PROFILE = true;
 
     private memory: Memory;
 
@@ -120,7 +120,7 @@ export class TMS9900 extends CPUCommon implements CPU {
             if (f) {
                 cycles += f.call(this);
                 if (TMS9900.PROFILE) {
-                    this.profile[(this.pc - 2) & 0xFFFF] += cycles;
+                    this.profile[(this.pc) & 0xFFFF] += cycles;
                 }
             } else {
                 this.log.info(Util.toHexWord((this.pc - 2) & 0xFFFF) + " " + Util.toHexWord(instruction) + " " + opcode.id + ": Not implemented");
@@ -352,6 +352,10 @@ export class TMS9900 extends CPUCommon implements CPU {
         this.tracing = tracing;
     }
 
+    getProfile() : Uint32Array{
+        return this.profile;
+    }
+    
     dumpProfile() {
         if (TMS9900.PROFILE) {
             const sortedProfile = [];

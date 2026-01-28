@@ -1,6 +1,6 @@
 <template>
     <div class="listing">
-        <span v-for="(line, addr) in list" :class="{ current: pc == addr }">{{ line + "\n" }}</span>
+        <span v-for="(line, addr) in list" :class="{ current: pc == addr }" :style="{ color: 'hsl(0, '+(100*Math.pow(profile[addr]/max,.4))+'%, 50%)' }">{{ line + "\n" }}</span>
     </div>
 </template>
 <script setup>
@@ -15,11 +15,19 @@ const props = defineProps({
 
 let list = ref({});
 let pc = ref();
+let profile = ref([]);
+let max = ref(0);
 
 function update() {
     let cpu = props.cpu;
     if (cpu) {
         pc.value = cpu.getPc();
+        profile.value = cpu.getProfile();
+        let m = 0;
+        for ( let addr of Object.keys(list.value)){
+            m = Math.max(m, profile.value[addr]);
+        }
+        max.value = m;
     }
     requestAnimationFrame(update);
 }
@@ -50,7 +58,7 @@ watch(() => props.list, (listing) => {
     white-space: pre;
     font-family: monospace;
     font-size: small;
-    column-width: 430px;
+    column-width: 450px;
     column-gap: 20px;
     background-color: #252525;
     color: #d4d4d4;
