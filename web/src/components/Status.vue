@@ -15,7 +15,7 @@
                 <dt>Cycles:</dt>
                 <dd>{{ cycles.toLocaleString() }}</dd>
                 <dt>Interrupts:</dt>
-                <dd><span v-if="int.intReq">{{ int.ic.toString(2).padStart(4, "0") }}</span><span v-else>0000</span>
+                <dd><span v-if="int !== false">{{ int.toString(2).padStart(4, "0") }}</span><span v-else>none</span>
                 </dd>
             </dl>
         </div>
@@ -59,7 +59,7 @@ function update() {
         wp.value = cpu.getWp();
         st.value = cpu.getSt();
         cycles.value = cpu.getCycles();
-        int.value = 0;//TODO getInterruptState();
+        int.value = props.ue.intEnc.getInterruptState();
         let wpProfile = cpu.getWpProfile();
         let wpTotal = 0;
         for (const [wp, cycles] of Object.entries(wpProfile)) {
