@@ -9,7 +9,7 @@
  */
 
 import { Log } from './util/log';
-import { InterruptSource, registerInterruptSource } from './interrupts';
+import { InterruptEncoder, InterruptSource } from './InterruptEncoder';
 import { MemoryMapped } from './memory';
 
 export class UeUart implements InterruptSource, MemoryMapped {
@@ -25,14 +25,14 @@ export class UeUart implements InterruptSource, MemoryMapped {
 
     private byteConsumer: (byte: number) => void;
 
-    constructor(baseAddr: number) {
+    constructor(baseAddr: number, intEnc : InterruptEncoder) {
         this.baseAddr = baseAddr;
         this.rData = 64;
         this.rReady = false;
         this.tData = 0;
         this.tReady = true;
 
-        registerInterruptSource(this);
+        intEnc.registerInterruptSource(this);
 
         this.byteConsumer = (b) => console.log(`Serial byte ${b}`);
         /*

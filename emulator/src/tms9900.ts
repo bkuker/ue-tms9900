@@ -3,7 +3,7 @@ import { Memory } from './memory';
 import { CPU } from './interfaces/cpu';
 import { Opcode } from "./util/opcode";
 import { CPUCommon } from "./cpu-common";
-import { getInterruptState } from './interrupts';
+import { InterruptEncoder } from './InterruptEncoder';
 
 export class TMS9900 extends CPUCommon implements CPU {
 
@@ -12,6 +12,7 @@ export class TMS9900 extends CPUCommon implements CPU {
     static readonly PROFILE = true;
 
     private memory: Memory;
+    private intEnc: InterruptEncoder;
 
     // Misc
     private suspended: boolean;
@@ -20,9 +21,10 @@ export class TMS9900 extends CPUCommon implements CPU {
     private countStart: number;
     private maxCount: number;
 
-    constructor(memory: Memory) {
+    constructor(memory: Memory, intEnc : InterruptEncoder) {
         super();
         this.memory = memory;
+        this.intEnc = intEnc;
         this.addSpecialInstructions();
     }
 
@@ -90,8 +92,8 @@ export class TMS9900 extends CPUCommon implements CPU {
                     //this.log.info(Util.padr(this.disassembler.disassembleInstruction(tmpPC), ' ', 40) + instrCycles);
                 }
                 // Execute interrupt routine
-                const { intReq, ic } = getInterruptState();
-                if (intReq && ic <= this.getInterruptMask()) {
+                const ic = this.intEnc.getInterruptState();
+                if (ic !== false && ic <= this.getInterruptMask()) {
                     this.addCycles(this.doInterrupt(ic * 4));
 
                     // Auto-adjust interrupt mask (real hardware behavior)

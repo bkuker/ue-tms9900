@@ -64,7 +64,7 @@ onMounted(async () => {
       <Terminal ref="term1" @byte="(b) => ue.mux1.offerByteFromTerminal(b)"></Terminal>
       MUX1
     </div>
-    <Status :cpu="ue.cpu"></Status>
+    <Status :ue="ue"></Status>
     <div class="controls">
       <h2>Controls:</h2>
       <button @click="running = true" :disabled="running">Run</button>

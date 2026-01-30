@@ -1,5 +1,5 @@
 import { CPU } from './interfaces/cpu';
-import { InterruptSource, registerInterruptSource } from './interrupts';
+import { InterruptEncoder, InterruptSource } from './InterruptEncoder';
 import { MemoryMapped } from './memory';
 
 const MIN_MS = 10;
@@ -12,10 +12,10 @@ export class Timer implements InterruptSource, MemoryMapped {
     private hertz: number;
     private interval: number = 0;
 
-    constructor(baseAddr, irq) {
+    constructor(baseAddr, irq, intEnc : InterruptEncoder) {
         this.baseAddr = baseAddr;
         this.irq = irq;
-        registerInterruptSource(this);
+        intEnc.registerInterruptSource(this);
         this.hz = 2;
     }
 

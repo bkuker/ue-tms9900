@@ -24,7 +24,7 @@
             <dl class="registers">
                 <template v-for="r in 16" :key="r">
                     <dt>R{{ r }}</dt>
-                    <dd>0x{{ cpu.getMemoryWord(cpu.getWp() + 2 * r).toString(16).padStart(4, "0") }}</dd>
+                    <dd>0x{{ ue.cpu.getMemoryWord(wp + 2 * r).toString(16).padStart(4, "0") }}</dd>
                 </template>
             </dl>
         </div>
@@ -43,9 +43,8 @@
 <script setup>
 import { defineProps, ref, onMounted, onUnmounted } from 'vue'
 import StatusRegister from './StatusRegister.vue';
-import { getInterruptState } from '@ue-tms9900/emulator/interrupts';
 
-const props = defineProps(['cpu']);
+const props = defineProps(['ue']);
 const pc = ref(0);
 const wp = ref(0);
 const st = ref(0);
@@ -54,13 +53,13 @@ const int = ref({});
 const pct = ref({});
 
 function update() {
-    let cpu = props.cpu;
+    let cpu = props.ue.cpu;
     if (cpu) {
         pc.value = cpu.getPc();
         wp.value = cpu.getWp();
         st.value = cpu.getSt();
         cycles.value = cpu.getCycles();
-        int.value = getInterruptState();
+        int.value = 0;//TODO getInterruptState();
         let wpProfile = cpu.getWpProfile();
         let wpTotal = 0;
         for (const [wp, cycles] of Object.entries(wpProfile)) {
