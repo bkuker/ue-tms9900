@@ -1,137 +1,137 @@
 ;*************************************************
 ;                       Scheduler RAM
 
-        DORG >1000      ; RAM start
-OSWP    BSS 32          ; Set aside 32 bytes/16 words for primary workspace
+        DORG >1000                      ; RAM start
+OSWP    BSS 32                          ; Set aside 32 bytes/16 words for primary workspace
 
-TCBS                    ; Start of TCB Table
-        BSS 6           ; WP,PC,ST
+TCBS                                    ; Start of TCB Table
+        BSS 6                           ; WP,PC,ST
         BSS 6
-TCBE                    ; End of TCB Table
+TCBE                                    ; End of TCB Table
 
-TCUR    BSS 2           ; Pointer to TCB for current task
+TCUR    BSS 2                           ; Pointer to TCB for current task
 
 ;*************************************************
 ;                       ROM Start
 
-        AORG >0000      ; Reset Vector...
-        DATA OSWP       ;       OS workspace addr
-        DATA INIT       ;       Init code
+        AORG >0000                      ; Reset Vector...
+        DATA OSWP                       ;       OS workspace addr
+        DATA INIT                       ;       Init code
 
-        AORG >003C      ; Timer Vector
-        DATA OSWP       ;       OS Workspace
-        DATA TIMER      ;       Scheduler code
+        AORG >003C                      ; Timer Vector
+        DATA OSWP                       ;       OS Workspace
+        DATA TIMER                      ;       Scheduler code
 
 
         AORG >0100
-INITDATA                ; Initial Ram Values
+INITDATA                                ; Initial Ram Values
         DATA T1RAM, TOP1, >00FF         ; Task 1 TCB
         DATA T2RAM, TOP2, >00FF         ; Task 2 TCB
 INITEND
 
-INIT    
-        LI 0, INITDATA   ; Copy TCBs from ROM to RAM
-        LI 1, TCBS
-        LI 2, (INITEND-INITDATA)/2
-COPY    MOV *0+,*1+
-        DEC 2
+INIT
+        LI R0, INITDATA                 ; Copy TCBs from ROM to RAM
+        LI R1, TCBS
+        LI R2, (INITEND-INITDATA)/2
+COPY    MOV *R0+, *R1+
+        DEC R2
         JNE COPY
 
-                        ; Load and run Task 1
-        LI 1,TCBS       ; Set the first task as the "next" to run
-        JMP RES         ; Jump straight to resume it!
+                                        ; Load and run Task 1
+        LI R1, TCBS                     ; Set the first task as the "next" to run
+        JMP RES                         ; Jump straight to resume it!
 
 
-TIMER   LIMI 0          ; INT OFF
-        CLR @>F0F0      ; MMIO Write to clear timer interrupt
+TIMER   LIMI 0                          ; INT OFF
+        CLR @>F0F0                      ; MMIO Write to clear timer interrupt
 
-        MOV @TCUR,0     ;Load current TCB address to R0
-        MOV 0,1         ;Copy to R1...
-        AI 1,>6         ;and increment to next TCB
+        MOV @TCUR, R0                   ;Load current TCB address to R0
+        MOV R0, R1                      ;Copy to R1...
+        AI R1, >6                       ;and increment to next TCB
 
-                        ;Loop back around to the first task
-        CI 1,TCBE       ;If next task is NOT past the end of the TCB Table
-        JNE SWAP        ;THEN goto SWAP
-        LI 1,TCBS       ;ELSE set it to the first one
+                                        ;Loop back around to the first task
+        CI R1, TCBE                     ;If next task is NOT past the end of the TCB Table
+        JNE SWAP                        ;THEN goto SWAP
+        LI R1, TCBS                     ;ELSE set it to the first one
 SWAP
 
-SUS                     ;Suspend task to TCB in R0
-        MOV 13,*0+      ; Save context to TCB
-        MOV 14,*0+
-        MOV 15,*0+
-RES                     ;Resume task from TCB in R1
-        MOV 1,@TCUR     ; Save as current task
-        MOV *1+,13      ; Restore context from TCB
-        MOV *1+,14
-        MOV *1+,15
+SUS                                     ;Suspend task to TCB in R0
+        MOV R13, *R0+                   ; Save context to TCB
+        MOV R14, *R0+
+        MOV R15, *R0+
+RES                                     ;Resume task from TCB in R1
+        MOV R1, @TCUR                   ; Save as current task
+        MOV *R1+, R13                   ; Restore context from TCB
+        MOV *R1+, R14
+        MOV *R1+, R15
         RTWP
 
 
 ;*************************************************
 ;                       Task 1
         DORG >2000
-T1RAM   BSS 32           ;Workspace
+T1RAM   BSS 32                          ;Workspace
 
         AORG >0200
-TOP1    LI 2,STR1           ; Store the text address in R3
-        LI 3,>F000          ; Store the MMIO THRE address in R3
-        LI 4,>F002          ; Store the MMIO THRL address in R4
+TOP1    LI R2, STR1                     ; Store the text address in R3
+        LI R3, >F000                    ; Store the MMIO THRE address in R3
+        LI R4, >F002                    ; Store the MMIO THRL address in R4
 
-PR1     MOV *3, 1           ; Load R1 with the value pointed at by R3
-        ANDI 1, >0001       ; Do an AND to eliminate everything except status
-        JNE PR1             ; If equal to 0, loop back and test again
-        MOV *2, 1           ; Load R1 with value pointed at by R2
-        MOV 1, *4           ; Move the value into THRL
+PR1     MOV *R3, R1                     ; Load R1 with the value pointed at by R3
+        ANDI R1, >0001                  ; Do an AND to eliminate everything except status
+        JNE PR1                         ; If equal to 0, loop back and test again
+        MOV *R2, R1                     ; Load R1 with value pointed at by R2
+        MOV R1, *R4                     ; Move the value into THRL
 
-TST1    INCT 2              ; Increment R2 by a word
-        MOV *2, 1           ; Load R1 with value pointed at by R2
-        JEQ TOP1             ; If zero, restart the whole loop
-        JMP PR1             ; Else, run the print loop again
+TST1    INCT R2                         ; Increment R2 by a word
+        MOV *R2, R1                     ; Load R1 with value pointed at by R2
+        JEQ TOP1                        ; If zero, restart the whole loop
+        JMP PR1                         ; Else, run the print loop again
 
-STR1    DATA >0048          ; ASCII "H"
-        DATA >0045          ; ASCII "E"
-        DATA >004C          ; ASCII "L"
-        DATA >004C          ; ASCII "L"
-        DATA >004F          ; ASCII "O"
-        DATA >0052          ; ASCII "R"
-        DATA >004C          ; ASCII "L"
-        DATA >0044          ; ASCII "D"
-        DATA >0021          ; ASCII "!"
-        DATA >000A          ; LF
-        DATA >000D          ; CR
-        DATA >0000          ; Null terminator
+STR1    DATA >0048                      ; ASCII "H"
+        DATA >0045                      ; ASCII "E"
+        DATA >004C                      ; ASCII "L"
+        DATA >004C                      ; ASCII "L"
+        DATA >004F                      ; ASCII "O"
+        DATA >0052                      ; ASCII "R"
+        DATA >004C                      ; ASCII "L"
+        DATA >0044                      ; ASCII "D"
+        DATA >0021                      ; ASCII "!"
+        DATA >000A                      ; LF
+        DATA >000D                      ; CR
+        DATA >0000                      ; Null terminator
 
 ;*************************************************
 ;                       Task 2
         DORG >3000
-T2RAM   BSS 32           ;Workspace
+T2RAM   BSS 32                          ;Workspace
         AORG >0300
-TOP2    LI 2,STR2           ; Store the text address in R3
-        LI 3,>F00A          ; Store the MMIO THRE address in R3
-        LI 4,>F00C          ; Store the MMIO THRL address in R4
+TOP2    LI R2, STR2                     ; Store the text address in R3
+        LI R3, >F00A                    ; Store the MMIO THRE address in R3
+        LI R4, >F00C                    ; Store the MMIO THRL address in R4
 
-PR2     MOV *3, 1           ; Load R1 with the value pointed at by R3
-        ANDI 1, >0001       ; Do an AND to eliminate everything except status
-        JNE PR2             ; If equal to 0, loop back and test again
-        MOV *2, 1           ; Load R1 with value pointed at by R2
-        MOV 1, *4           ; Move the value into THRL
+PR2     MOV *R3, R1                     ; Load R1 with the value pointed at by R3
+        ANDI R1, >0001                  ; Do an AND to eliminate everything except status
+        JNE PR2                         ; If equal to 0, loop back and test again
+        MOV *R2, R1                     ; Load R1 with value pointed at by R2
+        MOV R1, *R4                     ; Move the value into THRL
 
-TST2    INCT 2              ; Increment R2 by a word
-        MOV *2, 1           ; Load R1 with value pointed at by R2
-        JEQ TOP2             ; If zero, restart the whole loop
-        JMP PR2             ; Else, run the print loop again
+TST2    INCT R2                         ; Increment R2 by a word
+        MOV *R2, R1                     ; Load R1 with value pointed at by R2
+        JEQ TOP2                        ; If zero, restart the whole loop
+        JMP PR2                         ; Else, run the print loop again
 
-STR2    DATA >0054          ; ASCII "T"
-        DATA >004D          ; ASCII "M"
-        DATA >0053          ; ASCII "S"
-        DATA >002D          ; ASCII "-"
-        DATA >0039          ; ASCII "9"
-        DATA >0039          ; ASCII "9"
-        DATA >0030          ; ASCII "0"
-        DATA >0030          ; ASCII "0"
-        DATA >0021          ; ASCII "!"
-        DATA >000A          ; LF
-        DATA >000D          ; CR
-        DATA >0000          ; Null terminator
+STR2    DATA >0054                      ; ASCII "T"
+        DATA >004D                      ; ASCII "M"
+        DATA >0053                      ; ASCII "S"
+        DATA >002D                      ; ASCII "-"
+        DATA >0039                      ; ASCII "9"
+        DATA >0039                      ; ASCII "9"
+        DATA >0030                      ; ASCII "0"
+        DATA >0030                      ; ASCII "0"
+        DATA >0021                      ; ASCII "!"
+        DATA >000A                      ; LF
+        DATA >000D                      ; CR
+        DATA >0000                      ; Null terminator
 
         END

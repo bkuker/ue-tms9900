@@ -1,7 +1,24 @@
+@import url('https://fonts.googleapis.com/css?family=Roboto');
+
 html {
   box-sizing: border-box;
-  font-family: sans-serif;
+  font-family: 'Roboto', sans-serif;
+  background-color: rgb(230, 230, 230);
 }
-*, *:before, *:after {
+
+*,
+*:before,
+*:after {
   box-sizing: inherit;
+}
+
+body {
+  width: 1400px;
+  margin: auto;
+  border: 1px solid #333;
+  background-color: white;
+  padding: 0;
+  margin-top: 20px;
+  border-radius: 30px;
+  font-size: small;
 }

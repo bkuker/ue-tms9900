@@ -16,6 +16,7 @@ export class TMS9900 extends CPUCommon implements CPU {
     // Misc
     private suspended: boolean;
     private profile: Uint32Array;
+    private wpProfile;
     private countStart: number;
     private maxCount: number;
 
@@ -48,6 +49,7 @@ export class TMS9900 extends CPUCommon implements CPU {
         this.maxCount = 0;
         this.illegalCount = 0;
         this.profile = new Uint32Array(0x10000);
+        this.wpProfile = {};
 
         // Reset
         this.wp = this.readMemoryWord(0x0000);
@@ -121,6 +123,7 @@ export class TMS9900 extends CPUCommon implements CPU {
                 cycles += f.call(this);
                 if (TMS9900.PROFILE) {
                     this.profile[(this.pc) & 0xFFFF] += cycles;
+                    this.wpProfile[this.getWp()] = (this.wpProfile[this.getWp()]|0) +  cycles;
                 }
             } else {
                 this.log.info(Util.toHexWord((this.pc - 2) & 0xFFFF) + " " + Util.toHexWord(instruction) + " " + opcode.id + ": Not implemented");
@@ -350,6 +353,10 @@ export class TMS9900 extends CPUCommon implements CPU {
 
     setTracing(tracing: boolean) {
         this.tracing = tracing;
+    }
+
+    getWpProfile() {
+        return this.wpProfile;
     }
 
     getProfile() : Uint32Array{

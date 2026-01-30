@@ -57,12 +57,17 @@ watch(() => props.list, (listing) => {
 .listing {
     white-space: pre;
     font-family: monospace;
-    font-size: small;
-    column-width: 450px;
-    column-gap: 20px;
+    font-size: smaller;
+    column-width: 440px;
+    column-gap: 10px;
     background-color: #252525;
     color: #d4d4d4;
     padding: 20px;
+}
+.listing > span {
+    display: block;
+    width: 450px;
+    overflow: hidden;
 }
 
 .current {

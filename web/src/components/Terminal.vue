@@ -18,7 +18,7 @@ onMounted(() => {
     cols: 80,
     rows: 24,
     cursorBlink: true,
-    fontSize: 14,
+    fontSize: 12,
     theme: {
       background: '#252525',
       foreground: '#d4d4d4'
@@ -56,8 +56,8 @@ defineExpose({ write })
   width: fit-content;
   /* Shrink to terminal's actual size */
 
-  border: 30px solid #4A392E;
-  border-radius: 20px;
+  border: 20px solid #4A392E;
+  border-radius: 10px;
   padding: 10px 0 10px 10px;
   background-color: #252525;
 }
