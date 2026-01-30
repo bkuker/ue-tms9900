@@ -1,3 +1,20 @@
+                                        ; Mux0 Constants
+M0STAT  EQU >F000                       ;  Read status: bit 0 = Transmit Busy, bit 1 = Data Received
+M0RX    EQU >F002                       ;  Read byte received in 8 LSB
+M0TX    EQU >F004                       ;  Write byte to send in 8 LSB
+M0RST   EQU >F006                       ;  Write to reset interrupt and Data Received status
+M0IRQ   EQU >3                          ;  IRQ for Mux0
+
+                                        ; Mux1 constants
+M1STAT  EQU >F00A
+M1RX    EQU >F00C
+M1TX    EQU >F00E
+M1RST   EQU >F010
+M1IRQ   EQU >4
+
+TMRIRQ  EQU >1                          ; Timer IRQ
+
+
 ;*************************************************
 ;                       Scheduler RAM
 
@@ -13,20 +30,20 @@ TCUR    BSS 2                           ; Pointer to TCB for current task
 
 ;*************************************************
 ;                       ROM Start
-
+                                        ;TODO CHANGE BACK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         AORG >0000                      ; Reset Vector...
-        DATA OSWP                       ;       OS workspace addr
+        DATA OSWP                      ;       OS workspace addr
         DATA INIT                       ;       Init code
 
-        AORG >003C                      ; Timer Vector
+        AORG TMRIRQ * 4                 ; Timer Vector
         DATA OSWP                       ;       OS Workspace
         DATA TIMER                      ;       Scheduler code
 
 
         AORG >0100
 INITDATA                                ; Initial Ram Values
-        DATA T1RAM, TOP1, >00FF         ; Task 1 TCB
-        DATA T2RAM, TOP2, >00FF         ; Task 2 TCB
+        DATA T1RAM, TOP1, >0002         ; Task 1 TCB
+        DATA T2RAM, TOP2, >0002         ; Task 2 TCB
 INITEND
 
 INIT
@@ -73,18 +90,14 @@ RES                                     ;Resume task from TCB in R1
 T1RAM   BSS 32                          ;Workspace
 
         AORG >0200
-TOP1    LI R2, STR1                     ; Store the text address in R3
-        LI R3, >F000                    ; Store the MMIO THRE address in R3
-        LI R4, >F002                    ; Store the MMIO THRL address in R4
+TOP1    LI R2, STR1                     ; Store the text address in R1
 
-PR1     MOV *R3, R1                     ; Load R1 with the value pointed at by R3
+PR1     MOV @M0STAT, R1                 ; Load Mux0 status to R1
         ANDI R1, >0001                  ; Do an AND to eliminate everything except status
         JNE PR1                         ; If equal to 0, loop back and test again
-        MOV *R2, R1                     ; Load R1 with value pointed at by R2
-        MOV R1, *R4                     ; Move the value into THRL
+        MOV *R2+, @M0TX                 ; Move the value into THRL, increment
 
-TST1    INCT R2                         ; Increment R2 by a word
-        MOV *R2, R1                     ; Load R1 with value pointed at by R2
+TST1    MOV *R2, R1                     ; Load R1 with value pointed at by R2
         JEQ TOP1                        ; If zero, restart the whole loop
         JMP PR1                         ; Else, run the print loop again
 
@@ -107,17 +120,13 @@ STR1    DATA >0048                      ; ASCII "H"
 T2RAM   BSS 32                          ;Workspace
         AORG >0300
 TOP2    LI R2, STR2                     ; Store the text address in R3
-        LI R3, >F00A                    ; Store the MMIO THRE address in R3
-        LI R4, >F00C                    ; Store the MMIO THRL address in R4
 
-PR2     MOV *R3, R1                     ; Load R1 with the value pointed at by R3
+PR2     MOV @M1STAT, R1                 ; Load Mux0 status to R1
         ANDI R1, >0001                  ; Do an AND to eliminate everything except status
         JNE PR2                         ; If equal to 0, loop back and test again
-        MOV *R2, R1                     ; Load R1 with value pointed at by R2
-        MOV R1, *R4                     ; Move the value into THRL
+        MOV *R2+, @M1TX                 ; Move the value into THRL, increment
 
-TST2    INCT R2                         ; Increment R2 by a word
-        MOV *R2, R1                     ; Load R1 with value pointed at by R2
+TST2    MOV *R2, R1                     ; Load R1 with value pointed at by R2
         JEQ TOP2                        ; If zero, restart the whole loop
         JMP PR2                         ; Else, run the print loop again
 

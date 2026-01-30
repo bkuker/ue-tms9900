@@ -24,7 +24,7 @@ export class InterruptEncoder {
     registerInterruptSource(device: InterruptSource) {
         this.devices.push(device);
         //Sort devices in reverse
-        this.devices.sort((a, b) => b.getInterruptCode() - a.getInterruptCode());
+        this.devices.sort((a, b) => a.getInterruptCode() - b.getInterruptCode());
     }
 
     getInterruptState(): number | false {

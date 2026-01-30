@@ -18,9 +18,9 @@ export class UeTMS990 {
         this.memory = new Memory([
             new ROM(0x0000, 2 * 1024, romData),
             new RAM(0x1000, 12 * 1024),
-            this.mux0 = new UeUart(0xF000, this.intEnc),
-            this.mux1 = new UeUart(0XF00A, this.intEnc),
-            this.timer = new Timer(0xF0F0, 15, this.intEnc)
+            this.mux0 = new UeUart(0xF000, 3, this.intEnc),
+            this.mux1 = new UeUart(0XF00A, 4, this.intEnc),
+            this.timer = new Timer(0xF0F0, 1, this.intEnc)
         ]);
         this.cpu = new TMS9900(this.memory, this.intEnc);
     }

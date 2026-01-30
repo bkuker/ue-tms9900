@@ -9,7 +9,7 @@ import List from './components/List.vue';
 const ue = ref<UeTMS990>();
 const term0 = ref();
 const term1 = ref();
-const running = ref(true);
+const running = ref(false);
 const list = ref<string>();
 const romImage = ref<Uint8Array>();
 
