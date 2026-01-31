@@ -1,0 +1,153 @@
+                                        ; Mux0 Constants
+M0STAT  EQU >F000                       ;  Read status: bit 0 = Transmit Busy, bit 1 = Data Received
+M0RX    EQU >F002                       ;  Read byte received in 8 LSB
+M0TX    EQU >F004                       ;  Write byte to send in 8 LSB
+M0RST   EQU >F006                       ;  Write to reset interrupt and Data Received status
+M0IRQ   EQU >3                          ;  IRQ for Mux0
+
+                                        ; Mux1 constants
+M1STAT  EQU >F00A
+M1RX    EQU >F00C
+M1TX    EQU >F00E
+M1RST   EQU >F010
+M1IRQ   EQU >4
+
+TMRIRQ  EQU >1                          ; Timer IRQ
+
+
+;*************************************************
+;                       Scheduler RAM
+
+        DORG >1000                      ; RAM start
+OSWP    BSS 32                          ; Set aside 32 bytes/16 words for primary workspace
+
+TCBS                                    ; Start of TCB Table
+        BSS 6                           ; WP,PC,ST
+        BSS 6
+TCBE                                    ; End of TCB Table
+
+TCUR    BSS 2                           ; Pointer to TCB for current task
+
+;*************************************************
+;                       ROM Start
+                                        ;TODO CHANGE BACK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        AORG >0000                      ; Reset Vector...
+        DATA OSWP                      ;       OS workspace addr
+        DATA INIT                       ;       Init code
+
+        AORG TMRIRQ * 4                 ; Timer Vector
+        DATA OSWP                       ;       OS Workspace
+        DATA TIMER                      ;       Scheduler code
+
+        AORG >0044                      ;XOP 1 Vector
+        DATA OSWP                       ;       OS Workspace
+        DATA TIMER                      ;       Scheduler code
+
+        AORG >0100
+INITDATA                                ; Initial Ram Values
+        DATA T1RAM, TOP1, >0002         ; Task 1 TCB
+        DATA T2RAM, TOP2, >0002         ; Task 2 TCB
+INITEND
+
+INIT
+        LI R0, INITDATA                 ; Copy TCBs from ROM to RAM
+        LI R1, TCBS
+        LI R2, (INITEND-INITDATA)/2
+COPY    MOV *R0+, *R1+
+        DEC R2
+        JNE COPY
+
+                                        ; Load and run Task 1
+        LI R1, TCBS                     ; Set the first task as the "next" to run
+        JMP RES                         ; Jump straight to resume it!
+
+
+TIMER   LIMI 0                          ; INT OFF
+        CLR @>F0F0                      ; MMIO Write to clear timer interrupt
+
+        MOV @TCUR, R0                   ;Load current TCB address to R0
+        MOV R0, R1                      ;Copy to R1...
+        AI R1, >6                       ;and increment to next TCB
+
+                                        ;Loop back around to the first task
+        CI R1, TCBE                     ;If next task is NOT past the end of the TCB Table
+        JNE SWAP                        ;THEN goto SWAP
+        LI R1, TCBS                     ;ELSE set it to the first one
+SWAP
+
+SUS                                     ;Suspend task to TCB in R0
+        MOV R13, *R0+                   ; Save context to TCB
+        MOV R14, *R0+
+        MOV R15, *R0+
+RES                                     ;Resume task from TCB in R1
+        MOV R1, @TCUR                   ; Save as current task
+        MOV *R1+, R13                   ; Restore context from TCB
+        MOV *R1+, R14
+        MOV *R1+, R15
+        RTWP
+
+
+;*************************************************
+;                       Task 1
+        DORG >2000
+T1RAM   BSS 32                          ;Workspace
+
+        AORG >0200
+TOP1    LI R2, STR1                     ; Store the text address in R1
+
+PR1     
+        XOP R0, 1
+        MOV @M0STAT, R1                 ; Load Mux0 status to R1
+        ANDI R1, >0001                  ; Do an AND to eliminate everything except status
+        JNE PR1                         ; If equal to 0, loop back and test again
+        MOV *R2+, @M0TX                 ; Move the value into THRL, increment
+
+TST1    MOV *R2, R1                     ; Load R1 with value pointed at by R2
+        JEQ TOP1                        ; If zero, restart the whole loop
+        JMP PR1                         ; Else, run the print loop again
+
+STR1    DATA >0048                      ; ASCII "H"
+        DATA >0045                      ; ASCII "E"
+        DATA >004C                      ; ASCII "L"
+        DATA >004C                      ; ASCII "L"
+        DATA >004F                      ; ASCII "O"
+        DATA >0052                      ; ASCII "R"
+        DATA >004C                      ; ASCII "L"
+        DATA >0044                      ; ASCII "D"
+        DATA >0021                      ; ASCII "!"
+        DATA >000A                      ; LF
+        DATA >000D                      ; CR
+        DATA >0000                      ; Null terminator
+
+;*************************************************
+;                       Task 2
+        DORG >3000
+T2RAM   BSS 32                          ;Workspace
+        AORG >0300
+TOP2    LI R2, STR2                     ; Store the text address in R3
+
+PR2     
+        XOP R0, 1
+        MOV @M1STAT, R1                 ; Load Mux0 status to R1
+        ANDI R1, >0001                  ; Do an AND to eliminate everything except status
+        JNE PR2                         ; If equal to 0, loop back and test again
+        MOV *R2+, @M1TX                 ; Move the value into THRL, increment
+
+TST2    MOV *R2, R1                     ; Load R1 with value pointed at by R2
+        JEQ TOP2                        ; If zero, restart the whole loop
+        JMP PR2                         ; Else, run the print loop again
+
+STR2    DATA >0054                      ; ASCII "T"
+        DATA >004D                      ; ASCII "M"
+        DATA >0053                      ; ASCII "S"
+        DATA >002D                      ; ASCII "-"
+        DATA >0039                      ; ASCII "9"
+        DATA >0039                      ; ASCII "9"
+        DATA >0030                      ; ASCII "0"
+        DATA >0030                      ; ASCII "0"
+        DATA >0021                      ; ASCII "!"
+        DATA >000A                      ; LF
+        DATA >000D                      ; CR
+        DATA >0000                      ; Null terminator
+
+        END

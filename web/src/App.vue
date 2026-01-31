@@ -9,7 +9,7 @@ import List from './components/List.vue';
 const ue = ref<UeTMS990>();
 const term0 = ref();
 const term1 = ref();
-const running = ref(false);
+const running = ref(true);
 const list = ref<string>();
 const romImage = ref<Uint8Array>();
 
@@ -32,11 +32,11 @@ watch(romImage, (romImage) => {
 });
 
 onMounted(async () => {
-  const response = await fetch("hellorld2.rom");
+  const response = await fetch("ctype.rom");
   const arrayBuffer = await response.arrayBuffer();
   romImage.value = new Uint8Array(arrayBuffer);
 
-  list.value = await (await fetch("hellorld2.lst")).text();
+  list.value = await (await fetch("ctype.lst")).text();
 
 
   while (true) {

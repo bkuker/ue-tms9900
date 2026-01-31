@@ -1,191 +1,178 @@
-ASM990 2.4.6                                Fri Jan 23 20:39:39 2026 Page 0001
-
-
-1000          1          RORG >1000       ; RAM start
-1000          2  OSWP    BSS 32           ; Set aside 32 bytes/16 words for prim
-              3  
-1020 0000     4  T1WP    DATA 0
-1022 0000     5  T1PC    DATA 0
-1024 0000     6  T1ST    DATA 0
-              7  
-1026 0000     8  T2WP    DATA 0
-1028 0000     9  T2PC    DATA 0
-102A 0000    10  T2ST    DATA 0 
-             11  
-102C 0000    12  TCUR    DATA 0
-             13   
-0000         14          RORG >0000
-0000 1000    15          DATA >1000         
-0002 0100'   16          DATA INIT           
-             17  
-003C         18          RORG >003C
-003C 1000    19          DATA >1000          
-003E 0160'   20          DATA TIMER        
-             21  
-0100         22          RORG >0100
-0100 0200    23  INIT    LI 0,>2000              ;Set up Task 1 TCB
-0102 2000 
-0104 C800    24          MOV 0, @T1WP
-0106 1020'
-0108 0200    25          LI 0,TOP1
-010A 0200'
-010C C800    26          MOV 0, @T1PC
-010E 1022'
-0110 0200    27          LI 0,>00FF
-0112 00FF 
-0114 C800    28          MOV 0,@T1ST
-0116 1024'
-             29  
-0118 0200    30          LI 0,>3000              ;Set up Task 2 TCB
-011A 3000 
-011C C800    31          MOV 0, @T2WP
-011E 1026'
-0120 0200    32          LI 0,TOP2
-0122 0300'
-0124 C800    33          MOV 0, @T2PC
-0126 1028'
-0128 0200    34          LI 0,>00FF
-012A 00FF 
-012C C800    35          MOV 0,@T2ST
-012E 102A'
-             36  
-0130 0300    37          LIMI 0
-0132 0000 
-             38  
-0134 C360    39  T1      MOV @T1WP,13
-0136 1020'
-0138 C3A0    40          MOV @T1PC,14
-013A 1022'
-013C C3E0    41          MOV @T1ST,15
-013E 1024'
-0140 0200    42          LI 0,>0
-0142 0000 
-0144 C800    43          MOV 0,@TCUR
-ASM990 2.4.6                                Fri Jan 23 20:39:39 2026 Page 0002
-
-
-0146 102C'
-0148 0380    44          RTWP
-             45  
-014A C360    46  T2      MOV @T2WP,13
-014C 1026'
-014E C3A0    47          MOV @T2PC,14
-0150 1028'
-0152 C3E0    48          MOV @T2ST,15
-0154 102A'
-0156 0200    49          LI 0,>1
-0158 0001 
-015A C800    50          MOV 0,@TCUR
-015C 102C'
-015E 0380    51          RTWP
-             52  
-0160 0300    53  TIMER   LIMI 0                  ;INT OFF
-0162 0000 
-0164 04E0    54          CLR >F0F0            ;Clear timer int
-0166 F0F0 
-0168 C060    55          MOV @TCUR, 1             ;Load current task into R1
-016A 102C'
-016C 1608    56          JNE S2
-             57  
-016E C80D    58  S1      MOV 13,@T1WP
-0170 1020'
-0172 C80E    59          MOV 14,@T1PC
-0174 1022'
-0176 C80F    60          MOV 15,@T1ST
-0178 1024'
-017A 0460    61          B T2
-017C 014A'
-             62  
-017E C80D    63  S2      MOV 13,@T2WP
-0180 1026'
-0182 C80E    64          MOV 14,@T2PC
-0184 1028'
-0186 C80F    65          MOV 15,@T2ST
-0188 102A'
-018A 0460    66          B T1
-018C 0134'
-             67  
-             68  
-0200         69          RORG >0200
-0200 0202    70  TOP1    LI 2,STR1           ; Store the text address in R3
-0202 0220'
-0204 0203    71          LI 3,>F000          ; Store the MMIO THRE address in R3
-0206 F000 
-0208 0204    72          LI 4,>F002          ; Store the MMIO THRL address in R4
-020A F002 
-             73  
-020C C053    74  PR1     MOV *3, 1           ; Load R1 with the value pointed at
-020E 0241    75          ANDI 1, >0001       ; Do an AND to eliminate everything
-0210 0001 
-0212 16FC    76          JNE PR1             ; If equal to 0, loop back and test
-0214 C052    77          MOV *2, 1           ; Load R1 with value pointed at by 
-0216 C501    78          MOV 1, *4           ; Move the value into THRL
-             79  
-0218 05C2    80  TST1    INCT 2              ; Increment R2 by a word
-021A C052    81          MOV *2, 1           ; Load R1 with value pointed at by 
-021C 13F1    82          JEQ TOP1             ; If zero, restart the whole loop
-ASM990 2.4.6                                Fri Jan 23 20:39:39 2026 Page 0003
-
-
-021E 10F6    83          JMP PR1             ; Else, run the print loop again
-             84  
-0220 0048    85  STR1    DATA >0048          ; ASCII "H"
-0222 0045    86          DATA >0045          ; ASCII "E"
-0224 004C    87          DATA >004C          ; ASCII "L"
-0226 004C    88          DATA >004C          ; ASCII "L"
-0228 004F    89          DATA >004F          ; ASCII "O"
-022A 0052    90          DATA >0052          ; ASCII "R"
-022C 004C    91          DATA >004C          ; ASCII "L"
-022E 0044    92          DATA >0044          ; ASCII "D"
-0230 0021    93          DATA >0021          ; ASCII "!"
-0232 000A    94          DATA >000A          ; LF
-0234 000D    95          DATA >000D          ; CR
-0236 0000    96          DATA >0000          ; Null terminator
-             97  
-0300         98          RORG >0300
-0300 0202    99  TOP2    LI 2,STR2           ; Store the text address in R3
-0302 0320'
-0304 0203   100          LI 3,>F00A          ; Store the MMIO THRE address in R3
-0306 F00A 
-0308 0204   101          LI 4,>F00C          ; Store the MMIO THRL address in R4
-030A F00C 
-            102  
-030C C053   103  PR2     MOV *3, 1           ; Load R1 with the value pointed at
-030E 0241   104          ANDI 1, >0001       ; Do an AND to eliminate everything
-0310 0001 
-0312 16FC   105          JNE PR2             ; If equal to 0, loop back and test
-0314 C052   106          MOV *2, 1           ; Load R1 with value pointed at by 
-0316 C501   107          MOV 1, *4           ; Move the value into THRL
-            108  
-0318 05C2   109  TST2    INCT 2              ; Increment R2 by a word
-031A C052   110          MOV *2, 1           ; Load R1 with value pointed at by 
-031C 13F1   111          JEQ TOP2             ; If zero, restart the whole loop
-031E 10F6   112          JMP PR2             ; Else, run the print loop again
-            113  
-0320 0054   114  STR2    DATA >0054          ; ASCII "T"
-0322 004D   115          DATA >004D          ; ASCII "M"
-0324 0053   116          DATA >0053          ; ASCII "S"
-0326 002D   117          DATA >002D          ; ASCII "-"
-0328 0039   118          DATA >0039          ; ASCII "9"
-032A 0039   119          DATA >0039          ; ASCII "9"
-032C 0030   120          DATA >0030          ; ASCII "0"
-032E 0030   121          DATA >0030          ; ASCII "0"
-0330 0021   122          DATA >0021          ; ASCII "!"
-0332 000A   123          DATA >000A          ; LF
-0334 000D   124          DATA >000D          ; CR
-0336 0000   125          DATA >0000          ; Null terminator
-            126  
-            127          END
-ASM990 2.4.6                                Fri Jan 23 20:39:39 2026 Page 0004
-
-
-INIT     0100'  OSWP     1000'  PR1      020C'  PR2      030C'  R0       0000   
-R1       0001   R10      000A   R11      000B   R12      000C   R13      000D   
-R14      000E   R15      000F   R2       0002   R3       0003   R4       0004   
-R5       0005   R6       0006   R7       0007   R8       0008   R9       0009   
-S1       016E'  S2       017E'  STR1     0220'  STR2     0320'  T1       0134'  
-T1PC     1022'  T1ST     1024'  T1WP     1020'  T2       014A'  T2PC     1028'  
-T2ST     102A'  T2WP     1026'  TCUR     102C'  TIMER    0160'  TOP1     0200'  
-TOP2     0300'  TST1     0218'  TST2     0318'  
-
-0 Errors in assembly
+XAS99 CROSS-ASSEMBLER   VERSION 3.6.5
+     **** ****     > hellorld2.a99
+0001                                                       ; Mux0 Constants
+0002      F000     M0STAT  EQU >F000                       ;  Read status: bit 0 = Transmit Busy, bit 1 = Data Received
+0003      F002     M0RX    EQU >F002                       ;  Read byte received in 8 LSB
+0004      F004     M0TX    EQU >F004                       ;  Write byte to send in 8 LSB
+0005      F006     M0RST   EQU >F006                       ;  Write to reset interrupt and Data Received status
+0006      0003     M0IRQ   EQU >3                          ;  IRQ for Mux0
+0007               
+0008                                                       ; Mux1 constants
+0009      F00A     M1STAT  EQU >F00A
+0010      F00C     M1RX    EQU >F00C
+0011      F00E     M1TX    EQU >F00E
+0012      F010     M1RST   EQU >F010
+0013      0004     M1IRQ   EQU >4
+0014               
+0015      0001     TMRIRQ  EQU >1                          ; Timer IRQ
+0016               
+0017               
+0018               ;*************************************************
+0019               ;                       Scheduler RAM
+0020               
+0021                       DORG >1000                      ; RAM start
+0022 1000          OSWP    BSS 32                          ; Set aside 32 bytes/16 words for primary workspace
+0023               
+0024               TCBS                                    ; Start of TCB Table
+0025 1020                  BSS 6                           ; WP,PC,ST
+0026 1026                  BSS 6
+0027               TCBE                                    ; End of TCB Table
+0028               
+0029 102C          TCUR    BSS 2                           ; Pointer to TCB for current task
+0030               
+0031               ;*************************************************
+0032               ;                       ROM Start
+0033                                                       ;TODO CHANGE BACK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+0034                       AORG >0000                      ; Reset Vector...
+0035 0000 1000             DATA OSWP                      ;       OS workspace addr
+0036 0002 010C             DATA INIT                       ;       Init code
+0037               
+0038                       AORG TMRIRQ * 4                 ; Timer Vector
+0039 0004 1000             DATA OSWP                       ;       OS Workspace
+0040 0006 0124             DATA TIMER                      ;       Scheduler code
+0041               
+0042                       AORG >0044                      ;XOP 1 Vector
+0043 0044 1000             DATA OSWP                       ;       OS Workspace
+0044 0046 0124             DATA TIMER                      ;       Scheduler code
+0045               
+0046                       AORG >0100
+0047               INITDATA                                ; Initial Ram Values
+0048 0100 2000             DATA T1RAM, TOP1, >0002         ; Task 1 TCB
+     0102 0200     
+     0104 0002     
+0049 0106 3000             DATA T2RAM, TOP2, >0002         ; Task 2 TCB
+     0108 0300     
+     010A 0002     
+0050               INITEND
+0051               
+0052               INIT
+0053 010C 0200  12         LI R0, INITDATA                 ; Copy TCBs from ROM to RAM
+     010E 0100     
+0054 0110 0201  12         LI R1, TCBS
+     0112 1020     
+0055 0114 0202  12         LI R2, (INITEND-INITDATA)/2
+     0116 0006     
+0056 0118 CC70  42 COPY    MOV *R0+, *R1+
+0057 011A 0602  10         DEC R2
+0058 011C 16FD  10         JNE COPY
+0059               
+0060                                                       ; Load and run Task 1
+0061 011E 0201  12         LI R1, TCBS                     ; Set the first task as the "next" to run
+     0120 1020     
+0062 0122 1011  10         JMP RES                         ; Jump straight to resume it!
+0063               
+0064               
+0065 0124 0300  14 TIMER   LIMI 0                          ; INT OFF
+     0126 0000     
+0066 0128 04E0  26         CLR @>F0F0                      ; MMIO Write to clear timer interrupt
+     012A F0F0     
+0067               
+0068 012C C020  22         MOV @TCUR, R0                   ;Load current TCB address to R0
+     012E 102C     
+0069 0130 C040  14         MOV R0, R1                      ;Copy to R1...
+0070 0132 0221  14         AI R1, >6                       ;and increment to next TCB
+     0134 0006     
+0071               
+0072                                                       ;Loop back around to the first task
+0073 0136 0281  14         CI R1, TCBE                     ;If next task is NOT past the end of the TCB Table
+     0138 102C     
+0074 013A 1602  10         JNE SWAP                        ;THEN goto SWAP
+0075 013C 0201  12         LI R1, TCBS                     ;ELSE set it to the first one
+     013E 1020     
+0076               SWAP
+0077               
+0078               SUS                                     ;Suspend task to TCB in R0
+0079 0140 CC0D  30         MOV R13, *R0+                   ; Save context to TCB
+0080 0142 CC0E  30         MOV R14, *R0+
+0081 0144 CC0F  30         MOV R15, *R0+
+0082               RES                                     ;Resume task from TCB in R1
+0083 0146 C801  22         MOV R1, @TCUR                   ; Save as current task
+     0148 102C     
+0084 014A C371  26         MOV *R1+, R13                   ; Restore context from TCB
+0085 014C C3B1  26         MOV *R1+, R14
+0086 014E C3F1  26         MOV *R1+, R15
+0087 0150 0380  14         RTWP
+0088               
+0089               
+0090               ;*************************************************
+0091               ;                       Task 1
+0092                       DORG >2000
+0093 2000          T1RAM   BSS 32                          ;Workspace
+0094               
+0095                       AORG >0200
+0096 0200 0202  12 TOP1    LI R2, STR1                     ; Store the text address in R1
+     0202 0218     
+0097               
+0098               PR1
+0099                       ;XOP R0, 1
+0100 0204 C060  26         MOV @M0STAT, R1                 ; Load Mux0 status to R1
+     0206 F000     
+0101 0208 0241  14         ANDI R1, >0001                  ; Do an AND to eliminate everything except status
+     020A 0001     
+0102 020C 16FB  10         JNE PR1                         ; If equal to 0, loop back and test again
+0103 020E C832  42         MOV *R2+, @M0TX                 ; Move the value into THRL, increment
+     0210 F004     
+0104               
+0105 0212 C052  22 TST1    MOV *R2, R1                     ; Load R1 with value pointed at by R2
+0106 0214 13F5  10         JEQ TOP1                        ; If zero, restart the whole loop
+0107 0216 10F6  10         JMP PR1                         ; Else, run the print loop again
+0108               
+0109 0218 0048     STR1    DATA >0048                      ; ASCII "H"
+0110 021A 0045             DATA >0045                      ; ASCII "E"
+0111 021C 004C             DATA >004C                      ; ASCII "L"
+0112 021E 004C             DATA >004C                      ; ASCII "L"
+0113 0220 004F             DATA >004F                      ; ASCII "O"
+0114 0222 0052             DATA >0052                      ; ASCII "R"
+0115 0224 004C             DATA >004C                      ; ASCII "L"
+0116 0226 0044             DATA >0044                      ; ASCII "D"
+0117 0228 0021             DATA >0021                      ; ASCII "!"
+0118 022A 000A             DATA >000A                      ; LF
+0119 022C 000D             DATA >000D                      ; CR
+0120 022E 0000             DATA >0000                      ; Null terminator
+0121               
+0122               ;*************************************************
+0123               ;                       Task 2
+0124                       DORG >3000
+0125 3000          T2RAM   BSS 32                          ;Workspace
+0126                       AORG >0300
+0127 0300 0202  12 TOP2    LI R2, STR2                     ; Store the text address in R3
+     0302 0318     
+0128               
+0129               PR2
+0130                       ;XOP R0, 1
+0131 0304 C060  26         MOV @M1STAT, R1                 ; Load Mux0 status to R1
+     0306 F00A     
+0132 0308 0241  14         ANDI R1, >0001                  ; Do an AND to eliminate everything except status
+     030A 0001     
+0133 030C 16FB  10         JNE PR2                         ; If equal to 0, loop back and test again
+0134 030E C832  42         MOV *R2+, @M1TX                 ; Move the value into THRL, increment
+     0310 F00E     
+0135               
+0136 0312 C052  22 TST2    MOV *R2, R1                     ; Load R1 with value pointed at by R2
+0137 0314 13F5  10         JEQ TOP2                        ; If zero, restart the whole loop
+0138 0316 10F6  10         JMP PR2                         ; Else, run the print loop again
+0139               
+0140 0318 0054     STR2    DATA >0054                      ; ASCII "T"
+0141 031A 004D             DATA >004D                      ; ASCII "M"
+0142 031C 0053             DATA >0053                      ; ASCII "S"
+0143 031E 002D             DATA >002D                      ; ASCII "-"
+0144 0320 0039             DATA >0039                      ; ASCII "9"
+0145 0322 0039             DATA >0039                      ; ASCII "9"
+0146 0324 0030             DATA >0030                      ; ASCII "0"
+0147 0326 0030             DATA >0030                      ; ASCII "0"
+0148 0328 0021             DATA >0021                      ; ASCII "!"
+0149 032A 000A             DATA >000A                      ; LF
+0150 032C 000D             DATA >000D                      ; CR
+0151 032E 0000             DATA >0000                      ; Null terminator
+0152               
+0153                       END

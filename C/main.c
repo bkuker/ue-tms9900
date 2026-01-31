@@ -18,9 +18,10 @@ static void print(const char *s)
 }
 
 void main(){
-    print("Hello C Compiler!\r\nType Something!\r\n");
+    print("TMS Unix 1.0 tty1!\r\n\r\nlogin: root\r\npassword:\r\n");
     char buf[20];
     int i = 0;
+    print("\r\nroot@tms9900:~$ ");
     while(1){
         if ( *M0STAT & 0x02 ){
             char in = *M0RX;
@@ -28,15 +29,14 @@ void main(){
 
             if ( in == 0x0d ){
                 buf[i] = 0;
-                print("\r\n You typed: ");
+                print("\r\n/bin/sh: ");
                 print(buf);
-                print("\r\n");
+                print(": not found\r\nroot@tms9900:~$ ");
                 i = 0;
             } else {
                 buf[i++] = in;
+                putchar(*M0RX);
             }
-            putchar(*M0RX);
-
         }
     }
 }
