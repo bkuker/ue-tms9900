@@ -39,6 +39,9 @@ TCUR    BSS 2                           ; Pointer to TCB for current task
         DATA OSWP                       ;       OS Workspace
         DATA TIMER                      ;       Scheduler code
 
+        AORG >0044                      ;XOP 1 Vector
+        DATA OSWP                       ;       OS Workspace
+        DATA TIMER                      ;       Scheduler code
 
         AORG >0100
 INITDATA                                ; Initial Ram Values
@@ -92,7 +95,9 @@ T1RAM   BSS 32                          ;Workspace
         AORG >0200
 TOP1    LI R2, STR1                     ; Store the text address in R1
 
-PR1     MOV @M0STAT, R1                 ; Load Mux0 status to R1
+PR1     
+        XOP R0, 1
+        MOV @M0STAT, R1                 ; Load Mux0 status to R1
         ANDI R1, >0001                  ; Do an AND to eliminate everything except status
         JNE PR1                         ; If equal to 0, loop back and test again
         MOV *R2+, @M0TX                 ; Move the value into THRL, increment
@@ -121,7 +126,9 @@ T2RAM   BSS 32                          ;Workspace
         AORG >0300
 TOP2    LI R2, STR2                     ; Store the text address in R3
 
-PR2     MOV @M1STAT, R1                 ; Load Mux0 status to R1
+PR2     
+        XOP R0, 1
+        MOV @M1STAT, R1                 ; Load Mux0 status to R1
         ANDI R1, >0001                  ; Do an AND to eliminate everything except status
         JNE PR2                         ; If equal to 0, loop back and test again
         MOV *R2+, @M1TX                 ; Move the value into THRL, increment

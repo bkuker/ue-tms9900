@@ -1,6 +1,7 @@
 <template>
     <div class="listing">
-        <span v-for="(line, addr) in list" :class="{ current: pc == addr }" :style="{ color: 'hsl(0, '+(100*Math.pow(profile[addr]/max,.4))+'%, 50%)' }">{{ line + "\n" }}</span>
+        <span v-for="(line, addr) in list" :class="{ current: pc == addr }"
+            :style="{ color: 'hsl(0, ' + (100 * Math.pow(profile[addr] / max, .4)) + '%, 50%)' }">{{ line + "\n" }}</span>
     </div>
 </template>
 <script setup>
@@ -24,7 +25,7 @@ function update() {
         pc.value = cpu.getPc();
         profile.value = cpu.getProfile();
         let m = 0;
-        for ( let addr of Object.keys(list.value)){
+        for (let addr of Object.keys(list.value)) {
             m = Math.max(m, profile.value[addr]);
         }
         max.value = m;
@@ -38,14 +39,20 @@ watch(() => props.list, (listing) => {
     if (listing) {
         const re = /^[0-9a-fA-F]{4}/;
         const xas99 = listing.startsWith("XAS99");
+        const gcc = listing.includes("elf32-tms9900");
         for (let line of listing.split(/\r?\n/)) {
-            if ( xas99 )
-                line = line.substring(5);
-            if (re.test(line)) {
-                let addr = parseInt(line.substring(0, 4), 16);
-                let asm = line.substring(xas99?14:17);
-                if ( asm )
-                    list.value[addr] = asm;
+            if (gcc && line[4] == ':') {
+                let addr = parseInt(line.substring(0,4).trim(),16);
+                list.value[addr] = line;
+            } else {
+                if (xas99)
+                    line = line.substring(5);
+                if (re.test(line)) {
+                    let addr = parseInt(line.substring(0, 4), 16);
+                    let asm = line;//.substring(xas99?14:17);
+                    if (asm)
+                        list.value[addr] = asm;
+                }
             }
         }
     }
@@ -64,7 +71,8 @@ watch(() => props.list, (listing) => {
     color: #d4d4d4;
     padding: 20px;
 }
-.listing > span {
+
+.listing>span {
     display: block;
     width: 450px;
     overflow: hidden;
