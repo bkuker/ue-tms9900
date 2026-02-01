@@ -5,4 +5,9 @@ node_modules
 *.aout
 *.rom
 dist/
+*.o
+*.elf
+*.map
+*.s
+!crt0.s
 !/docs/**

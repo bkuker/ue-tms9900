@@ -35,8 +35,9 @@ void main(){
                 i = 0;
             } else {
                 buf[i++] = in;
-                putchar(*M0RX);
+                putchar(in);
             }
         }
     }
 }
+
