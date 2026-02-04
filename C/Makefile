@@ -25,8 +25,8 @@ out.lst: out.elf Makefile
 	$(OBJDUMP) -D $< > $@
 
 # Startup assembly
-crt0.o: crt0.s Makefile
-	$(AS) $(ASFLAGS) -c $< -o $@
+crt0.o: crt0.a99 Makefile
+	$(AS) $(ASFLAGS) -x assembler -c $< -o $@
 
 # Compile C to object
 main.o: main.c Makefile
