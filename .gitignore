@@ -9,5 +9,4 @@ dist/
 *.elf
 *.map
 *.s
-!crt0.s
 !/docs/**
