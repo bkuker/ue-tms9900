@@ -1,36 +1,36 @@
         .section .vectors, "a"
-        .word   _workspace
-        .word   _start
+        .word _workspace
+        .word _start
 
         .text
         .global _start
 _start:
-        LIMI    0               ; interrupts off
-        LWPI    _workspace      ; set workspace pointer
-        LI      r10, _stack_top
-        
-        ; Copy .data from ROM to RAM
-        LI      r0, _data_load
-        LI      r1, _data_start
-        LI      r2, _data_end
+        LIMI 0                          ; interrupts off
+        LWPI _workspace                 ; set workspace pointer
+        LI r10, _stack_top
+
+                                        ; Copy .data from ROM to RAM
+        LI r0, _data_load
+        LI r1, _data_start
+        LI r2, _data_end
 copy_data:
-        C       r1, r2
-        JHE     data_done
-        MOV     *r0+, *r1+
-        JMP     copy_data
+        C r1, r2
+        JHE data_done
+        MOV *r0+, *r1+
+        JMP copy_data
 data_done:
 
-        ; Zero .bss
-        LI      r1, _bss_start
-        LI      r2, _bss_end
+                                        ; Zero .bss
+        LI r1, _bss_start
+        LI r2, _bss_end
 zero_bss:
-        C       r1, r2
-        JHE     bss_done
-        CLR     *r1+
-        JMP     zero_bss
+        C r1, r2
+        JHE bss_done
+        CLR *r1+
+        JMP zero_bss
 bss_done:
 
-        BL      @main
+        BL @main
 
 hang:
-        JMP     hang
+        JMP hang
