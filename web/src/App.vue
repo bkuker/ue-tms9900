@@ -14,6 +14,12 @@ const list = ref<string>();
 const romImage = ref<Uint8Array>();
 
 const step = () => {
+  ue.value.intEnc.enabled = false;
+  ue.value.cpu.run(1, false);
+  ue.value.intEnc.enabled = true;
+}
+
+const stepI = () => {
   ue.value.cpu.run(1, false);
 }
 
@@ -32,11 +38,11 @@ watch(romImage, (romImage) => {
 });
 
 onMounted(async () => {
-  const response = await fetch("ctype.rom");
+  const response = await fetch("serialInt.rom");
   const arrayBuffer = await response.arrayBuffer();
   romImage.value = new Uint8Array(arrayBuffer);
 
-  list.value = await (await fetch("ctype.lst")).text();
+  list.value = await (await fetch("serialInt.lst")).text();
 
 
   while (true) {
@@ -70,6 +76,7 @@ onMounted(async () => {
       <button @click="running = true" :disabled="running">Run</button>
       <button @click="running = false" :disabled="!running">Halt</button>
       <button @click="step" :disabled="running">Step</button>
+      <button @click="stepI" :disabled="running">Step with Interrupts</button>
       <div>
         Timer: <input type="range" min="0" max="50" v-model.number="ue.timer.hz">{{ ue.timer.hz }}Hz
       </div>

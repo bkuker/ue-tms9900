@@ -16,9 +16,19 @@ export interface InterruptSource {
 
 export class InterruptEncoder {
     private devices: InterruptSource[] = [];
-    
+
+    private ena: boolean = true;
+
     constructor() {
 
+    }
+
+    get enabled() {
+        return this.ena;
+    }
+
+    set enabled(ena: boolean) {
+        this.ena = ena;
     }
 
     registerInterruptSource(device: InterruptSource) {
@@ -28,9 +38,11 @@ export class InterruptEncoder {
     }
 
     getInterruptState(): number | false {
+        if ( !this.ena )
+            return false;
         //List is sorted descending, so return the highest
-        for ( const d of this.devices ){
-            if ( d.isAssertingInterrupt() )
+        for (const d of this.devices) {
+            if (d.isAssertingInterrupt())
                 return d.getInterruptCode();
         }
         return false;
