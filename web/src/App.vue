@@ -5,6 +5,7 @@ import { ref, onMounted, watch } from 'vue';
 import { UeTMS990 } from '@ue-tms9900/emulator/UeTMS990';
 import RomUpload from './components/RomUpload.vue';
 import List from './components/List.vue';
+import Ram from './components/Ram.vue';
 
 const ue = ref<UeTMS990>();
 const term0 = ref();
@@ -83,6 +84,7 @@ onMounted(async () => {
 
       <RomUpload @files-uploaded="handleUpload" />
     </div>
+    <Ram :list="list" :memory="ue.memory" />
     <List :list="list" :cpu="ue.cpu" />
   </div>
 </template>
