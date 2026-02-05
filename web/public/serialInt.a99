@@ -1,0 +1,180 @@
+                                        ; Mux0 Constants
+M0STAT  EQU >F000                       ;  Read status: bit 0 = Transmit Busy, bit 1 = Data Received
+M0RX    EQU >F002                       ;  Read byte received in 8 LSB
+M0TX    EQU >F004                       ;  Write byte to send in 8 LSB
+M0RST   EQU >F006                       ;  Write to reset interrupt and Data Received status
+M0IRQ   EQU >3                          ;  IRQ for Mux0
+
+                                        ; Mux1 constants
+M1STAT  EQU >F00A
+M1RX    EQU >F00C
+M1TX    EQU >F00E
+M1RST   EQU >F010
+M1IRQ   EQU >4
+
+TMRIRQ  EQU >1                          ; Timer IRQ
+TMRRST  EQU >F0F0
+
+
+;*************************************************
+;                       Scheduler RAM
+
+        DORG >1000                      ; RAM start
+OSWP    BSS 32                          ; Set aside 32 bytes/16 words for primary workspace
+
+TCBS                                    ; Start of TCB Table
+        BSS 6                           ; WP,PC,ST
+        BSS 6
+TCBE                                    ; End of TCB Table
+
+TCUR    BSS 2                           ; Pointer to TCB for current task
+
+M0TXP   BSS 2                           ;Mux 0 TX Pointer
+M0RXB   BSS 2                           ;Mux 0 RX Byte
+M1TXP   BSS 2                           ;Mux 1 TX Pointer
+M1RXB   BSS 2                           ;Mux 1 RX Byte
+
+;*************************************************
+;                       ROM Start
+        AORG >0000                      ; Reset Vector...
+        DATA OSWP                       ;       OS workspace addr
+        DATA INIT                       ;       Init code
+
+        AORG TMRIRQ * 4                 ; Timer Vector
+        DATA OSWP                       ;       OS Workspace
+        DATA TIMER                      ;       Scheduler code
+
+        AORG M0IRQ * 4
+        DATA OSWP
+        DATA MUX0
+
+        AORG M1IRQ * 4
+        DATA OSWP
+        DATA MUX1
+
+        AORG (M0IRQ * 4) + 64
+        DATA OSWP
+        DATA MUX0TR
+
+        AORG (M1IRQ * 4) + 64
+        DATA OSWP
+        DATA MUX1TR
+
+        AORG >0044                      ;XOP 1 Vector
+        DATA OSWP                       ;       OS Workspace
+        DATA TIMER                      ;       Scheduler code
+
+        AORG >0100
+INITDATA                                ; Initial Ram Values
+        DATA T1RAM, TOP1, >0008         ; Task 1 TCB
+        DATA T2RAM, TOP2, >0008         ; Task 2 TCB
+INITEND
+
+INIT
+        LI R0, INITDATA                 ; Copy TCBs from ROM to RAM
+        LI R1, TCBS
+        LI R2, (INITEND-INITDATA)/2
+COPY    MOV *R0+, *R1+
+        DEC R2
+        JNE COPY
+
+                                        ; Load and run Task 1
+        LI R1, TCBS                     ; Set the first task as the "next" to run
+        JMP RES                         ; Jump straight to resume it!
+
+
+TIMER   LIMI 0                          ; INT OFF
+        CLR @TMRRST                     ; MMIO Write to clear timer interrupt
+
+        MOV @TCUR, R0                   ;Load current TCB address to R0
+        MOV R0, R1                      ;Copy to R1...
+        AI R1, >6                       ;and increment to next TCB
+
+                                        ;Loop back around to the first task
+        CI R1, TCBE                     ;If next task is NOT past the end of the TCB Table
+        JNE SWAP                        ;THEN goto SWAP
+        LI R1, TCBS                     ;ELSE set it to the first one
+SWAP
+
+SUS                                     ;Suspend task to TCB in R0
+        MOV R13, *R0+                   ; Save context to TCB
+        MOV R14, *R0+
+        MOV R15, *R0+
+RES                                     ;Resume task from TCB in R1
+        MOV R1, @TCUR                   ; Save as current task
+        MOV *R1+, R13                   ; Restore context from TCB
+        MOV *R1+, R14
+        MOV *R1+, R15
+        RTWP
+
+MUX0TR  LIMI 0
+        MOV *R11, @M0TXP
+MUX0    LIMI 0
+        LI R4, M0TXP
+        LI R1, M0STAT
+        JMP MUXTX
+
+MUX1TR  LIMI 0
+        MOV *R11, @M1TXP
+MUX1    LIMI 0
+        LI R4, M1TXP
+        LI R1, M1STAT
+
+MUXTX
+        MOV *R1, R3                     ;Load mux status
+        CLR @6(R1)                      ;Clear IRQ
+        MOV R3, R2
+        ANDI R2, >0001                  ;Transmit busy?
+        JNE MUXRX                       ;If so go to RX
+                                        ;Ready to transmit
+        MOV *R4, R2                     ;Load TX Pointer
+        JEQ MUXRX                       ;Nothing to transmit? goto RX
+        MOVB *R2+, R5                   ;Load transmit data and increment pointer
+        JEQ DONE                        ;Null? done!
+        MOVB R5, @5(R1)                 ;Transmit
+        MOV R2, *R4                     ;Store incremented poiter
+        JMP MUXRX
+DONE
+        CLR *R4                         ;Clear transmit pointer
+MUXRX
+        MOV R3, R2
+        ANDI R2, >0002                  ;Byte received
+        JEQ RET
+        MOV @2(R1), @2(R4)
+RET     RTWP
+
+
+;*************************************************
+;                       Task 1
+        DORG >2000
+T1RAM   BSS 32                          ;Workspace
+        AORG >0200
+TOP1    LI R2, STR1                     ; Store the text address in R1
+        XOP R2, M0IRQ
+LOOP1   MOV @M0TXP, R2
+        JNE LOOP1
+        JMP TOP1
+STR1    TEXT "HELLORLD!"
+        BYTE 13,10,0
+
+;*************************************************
+;                       Task 2
+        DORG >3000
+T2RAM   BSS 32                          ;Workspace
+T2BUF   BSS 2
+        AORG >0300
+TOP2    LI R2, STR2                     ; Store the text address in R1
+        XOP R2, M1IRQ
+LOOP2   XOP R0, 1
+        MOV @M1RXB, R9
+        JEQ LOOP2
+        CLR @T2BUF
+        MOVB @M1RXB+1, @T2BUF
+        CLR @M1RXB
+        LI R2, T2BUF                     ; Store the text address in R1
+        XOP R2, M1IRQ
+        JMP LOOP2
+STR2    TEXT "Hello Packed String, Hello Interupt IO, this terminal echos..."
+        BYTE 13,10,0
+
+        END
