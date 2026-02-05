@@ -40,25 +40,17 @@ M1RXB   BSS 2                           ;Mux 1 RX Byte
         DATA OSWP                       ;       OS workspace addr
         DATA INIT                       ;       Init code
 
-        AORG TMRIRQ * 4                 ; Timer Vector
+TIMERV  AORG TMRIRQ * 4                 ; Timer Vector
         DATA OSWP                       ;       OS Workspace
         DATA TIMER                      ;       Scheduler code
 
-        AORG M0IRQ * 4
+M0IRQV  AORG M0IRQ * 4
         DATA OSWP
         DATA MUX0
 
-        AORG M1IRQ * 4
+M1IRQV  AORG M1IRQ * 4
         DATA OSWP
         DATA MUX1
-
-        AORG (M0IRQ * 4) + 64
-        DATA OSWP
-        DATA MUX0TR
-
-        AORG (M1IRQ * 4) + 64
-        DATA OSWP
-        DATA MUX1TR
 
         AORG >0044                      ;XOP 1 Vector
         DATA OSWP                       ;       OS Workspace
@@ -107,15 +99,11 @@ RES                                     ;Resume task from TCB in R1
         MOV *R1+, R15
         RTWP
 
-MUX0TR  LIMI 0
-        MOV *R11, @M0TXP
 MUX0    LIMI 0
         LI R4, M0TXP
         LI R1, M0STAT
         JMP MUXTX
 
-MUX1TR  LIMI 0
-        MOV *R11, @M1TXP
 MUX1    LIMI 0
         LI R4, M1TXP
         LI R1, M1STAT
@@ -150,12 +138,15 @@ RET     RTWP
 T1RAM   BSS 32                          ;Workspace
         AORG >0200
 TOP1    LI R2, STR1                     ; Store the text address in R1
-        XOP R2, M0IRQ
-LOOP1   MOV @M0TXP, R2
-        JNE LOOP1
+        MOV R2, @M0TXP
+        BLWP @M0IRQV                    ; trigger transmit
+        MOV R0, R0
+LOOP1                                   ;Wait for tx to complete
+        MOV @M0TXP, R2                  ;Load data pointer
+        JNE LOOP1                       ;if not zero yet keep waiting
         JMP TOP1
 STR1    TEXT "HELLORLD!"
-        BYTE 13,10,0
+        BYTE 13, 10, 0
 
 ;*************************************************
 ;                       Task 2
@@ -164,17 +155,24 @@ T2RAM   BSS 32                          ;Workspace
 T2BUF   BSS 2
         AORG >0300
 TOP2    LI R2, STR2                     ; Store the text address in R1
-        XOP R2, M1IRQ
-LOOP2   XOP R0, 1
-        MOV @M1RXB, R9
-        JEQ LOOP2
-        CLR @T2BUF
-        MOVB @M1RXB+1, @T2BUF
-        CLR @M1RXB
-        LI R2, T2BUF                     ; Store the text address in R1
-        XOP R2, M1IRQ
-        JMP LOOP2
+        MOV R2, @M1TXP
+        BLWP @M1IRQV                    ; trigger transmit
+
+LOOP2                                   ;Wait for RX Byte
+        MOV @M1RXB, R9                  ; Load RX Byte
+        JEQ LOOP2                       ; If zero loop
+
+        CLR @T2BUF                      ; Clear transmit buf
+        MOVB @M1RXB+1, @T2BUF           ; Move rx byte into transmit buf
+                                        ; Note second byte of word is the null
+        CLR @M1RXB                      ; Clear receive byte
+
+        LI R2, T2BUF                    ; Store the text address in R1
+        MOV R2, @M1TXP
+        BLWP @M1IRQV                    ; trigger transmit
+        JMP LOOP2                       ; Start over
+
 STR2    TEXT "Hello Packed String, Hello Interupt IO, this terminal echos..."
-        BYTE 13,10,0
+        BYTE 13, 10, 0
 
         END
