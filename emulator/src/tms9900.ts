@@ -92,14 +92,18 @@ export class TMS9900 extends CPUCommon implements CPU {
                     //this.log.info(Util.padr(this.disassembler.disassembleInstruction(tmpPC), ' ', 40) + instrCycles);
                 }
                 // Execute interrupt routine
-                const ic = this.intEnc.getInterruptState();
-                if (ic !== false && ic <= this.getInterruptMask()) {
-                    this.addCycles(this.doInterrupt(ic * 4));
+                if ( this.skip_interrupt ){
+                    this.skip_interrupt = false;
+                } else {
+                    const ic = this.intEnc.getInterruptState();
+                    if (ic !== false && ic <= this.getInterruptMask()) {
+                        this.addCycles(this.doInterrupt(ic * 4));
 
-                    // Auto-adjust interrupt mask (real hardware behavior)
-                    // This prevents same/lower priority interrupts during the handler
-                    const newMask = ic === 0 ? 0 : ic - 1;
-                    this.st = (this.st & 0xFFF0) | newMask;
+                        // Auto-adjust interrupt mask (real hardware behavior)
+                        // This prevents same/lower priority interrupts during the handler
+                        const newMask = ic === 0 ? 0 : ic - 1;
+                        this.st = (this.st & 0xFFF0) | newMask;
+                    }
                 }
                 skipBreakpoint = false;
             }
@@ -336,7 +340,7 @@ export class TMS9900 extends CPUCommon implements CPU {
         this.setPc(this.readMemoryWord(0x0042 + (this.dest << 2)));
         this.setX();
 
-        // skip_interrupt=1;
+        this.skip_interrupt = true;
 
         return 36;
     }

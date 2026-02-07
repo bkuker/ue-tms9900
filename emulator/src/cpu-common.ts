@@ -121,6 +121,7 @@ export abstract class CPUCommon implements CPU {
     };
 
     // Misc
+    protected skip_interrupt: boolean;
     protected breakpoints: Breakpoint[];
     protected auxBreakpoint: number | null;
     protected stoppedAtBreakpoint: boolean;
@@ -516,7 +517,7 @@ export abstract class CPUCommon implements CPU {
         this.writeMemoryWord(this.wp + 30, this.st);
         this.setPc(this.readMemoryWord(this.source + 2));
 
-        // skip_interrupt=1;
+        this. skip_interrupt = true;
 
         return 26;
     }
