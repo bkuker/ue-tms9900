@@ -52,10 +52,6 @@ M1IRQV  AORG M1IRQ * 4
         DATA OSWP
         DATA MUX1
 
-        AORG >0044                      ;XOP 1 Vector
-        DATA OSWP                       ;       OS Workspace
-        DATA TIMER                      ;       Scheduler code
-
         AORG >0100
 INITDATA                                ; Initial Ram Values
         DATA T1RAM, TOP1, >0008         ; Task 1 TCB
@@ -142,6 +138,7 @@ TOP1    LI R2, STR1                     ; Store the text address in R1
         BLWP @M0IRQV                    ; trigger transmit
         MOV R0, R0
 LOOP1                                   ;Wait for tx to complete
+        BLWP @TIMERV                    ; yield
         MOV @M0TXP, R2                  ;Load data pointer
         JNE LOOP1                       ;if not zero yet keep waiting
         JMP TOP1
@@ -159,6 +156,7 @@ TOP2    LI R2, STR2                     ; Store the text address in R1
         BLWP @M1IRQV                    ; trigger transmit
 
 LOOP2                                   ;Wait for RX Byte
+        BLWP @TIMERV                    ; yield
         MOV @M1RXB, R9                  ; Load RX Byte
         JEQ LOOP2                       ; If zero loop
 
