@@ -1,0 +1,1 @@
+docker run --rm -v .:/src -w /src bkuker/tms9900-gcc make %1
