@@ -63,6 +63,10 @@ export class TMS9900 extends CPUCommon implements CPU {
         this.cycleLog = new Int32Array(0x10000);
     }
 
+    setAuxBreakpoint( pc ){
+        this.auxBreakpoint = pc;
+    }
+    
     run(cyclesToRun: number, skipBreakpoint?: boolean): number {
         this.stoppedAtBreakpoint = false;
         const startCycles = this.cycles;
