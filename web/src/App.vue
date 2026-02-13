@@ -10,7 +10,7 @@ import Ram from './components/Ram.vue';
 const ue = ref<UeTMS990>();
 const term0 = ref();
 const term1 = ref();
-const running = ref(true);
+const running = ref(false);
 const list = ref<string>();
 const romImage = ref<Uint8Array>();
 
@@ -28,6 +28,14 @@ function handleUpload(files) {
   console.log(files);
   romImage.value = files.rom.data;
   list.value = files.list.data;
+}
+
+function runTo(a){
+  if (!running.value ){
+    ue.value.cpu.setAuxBreakpoint(a);
+    running.value = true;
+  }
+  console.log("Runto", a, a.toString(16));
 }
 
 watch(romImage, (romImage) => {
@@ -49,6 +57,9 @@ onMounted(async () => {
   while (true) {
     if (running.value && ue.value) {
       ue.value.cpu.run(2000, false);
+      if ( ue.value.cpu.isStoppedAtBreakpoint() ){
+        running.value = false;
+      }
       //But yield every so often so UARTs and other things 
       //do their thing
       await new Promise(r => setTimeout(r, 0));
@@ -63,28 +74,28 @@ onMounted(async () => {
 <template>
   <h1>UE TMS9900 Homebrew Emulator</h1>
   <div v-if="ue" class="ue">
-    <div class="term">
-      <Terminal ref="term0" @byte="(b) => ue.mux0.offerByteFromTerminal(b)"></Terminal>
-      MUX0
-    </div>
-    <div class="term">
-      <Terminal ref="term1" @byte="(b) => ue.mux1.offerByteFromTerminal(b)"></Terminal>
-      MUX1
-    </div>
-    <Status :ue="ue"></Status>
-    <div class="controls">
-      <h2>Controls:</h2>
-      <button @click="running = true" :disabled="running">Run</button>
-      <button @click="running = false" :disabled="!running">Halt</button>
-      <button @click="step" :disabled="running">Step</button>
-      <button @click="stepI" :disabled="running">Step with Interrupts</button>
-      <div>
-        Timer: <input type="range" min="0" max="50" v-model.number="ue.timer.hz">{{ ue.timer.hz }}Hz
+      <div class="term">
+        <Terminal ref="term0" @byte="(b) => ue.mux0.offerByteFromTerminal(b)"></Terminal>
+        MUX0
       </div>
+      <div class="term">
+        <Terminal ref="term1" @byte="(b) => ue.mux1.offerByteFromTerminal(b)"></Terminal>
+        MUX1
+      </div>
+      <Status :ue="ue"></Status>
+      <div class="controls">
+        <h2>Controls:</h2>
+        <button @click="running = true" :disabled="running">Run</button>
+        <button @click="running = false" :disabled="!running">Halt</button>
+        <button @click="step" :disabled="running">Step</button>
+        <button @click="stepI" :disabled="running">Step with Interrupts</button>
+        <div>
+          Timer: <input type="range" min="0" max="50" v-model.number="ue.timer.hz">{{ ue.timer.hz }}Hz
+        </div>
 
-      <RomUpload @files-uploaded="handleUpload" />
-    </div>
-    <Ram :list="list" :memory="ue.memory" />
+        <RomUpload @files-uploaded="handleUpload" />
+      </div>
+      <Ram :list="list" :memory="ue.memory" />
     <List :list="list" :cpu="ue.cpu" />
   </div>
 </template>

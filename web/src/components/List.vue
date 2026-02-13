@@ -1,7 +1,10 @@
 <template>
     <div class="listing">
-        <span v-for="(line, addr) in list" :class="{ current: pc == addr }"
-            :style="{ color: 'hsl(0, ' + (100 * Math.pow(profile[addr] / max, .4)) + '%, 50%)' }">{{ line + "\n" }}</span>
+        <span 
+            v-for="(line) in lines" :class="{ current: pc == line.addr, addr: line.addr }"
+            :style="{ color: 'hsl(0, ' + (100 * Math.pow(profile[line.addr] / max, .4)) + '%, 50%)' }"
+            @dblclick="$emit('runTo', line.addr)"
+            >{{ line.text + "\n" }}</span>
     </div>
 </template>
 <script setup>
@@ -14,10 +17,12 @@ const props = defineProps({
     cpu: TMS9900
 });
 
-let list = ref({});
+let lines = ref([]);
+
 let pc = ref();
 let profile = ref([]);
 let max = ref(0);
+
 
 function update() {
     let cpu = props.cpu;
@@ -25,8 +30,9 @@ function update() {
         pc.value = cpu.getPc();
         profile.value = cpu.getProfile();
         let m = 0;
-        for (let addr of Object.keys(list.value)) {
-            m = Math.max(m, profile.value[addr]);
+        for (let line of lines.value) {
+            if ( line.addr)
+              m = Math.max(m, profile.value[line.addr]);
         }
         max.value = m;
     }
@@ -35,24 +41,34 @@ function update() {
 requestAnimationFrame(update);
 
 watch(() => props.list, (listing) => {
-    list.value = {};
+    lines.value = [];
     if (listing) {
         const re = /^[0-9a-fA-F]{4}/;
         const xas99 = listing.startsWith("XAS99");
         const gcc = listing.includes("elf32-tms9900");
         for (let line of listing.split(/\r?\n/)) {
+            let l = {};
+            lines.value.push(l);
+            l.text = line;
             if (gcc && line[4] == ':') {
                 let addr = parseInt(line.substring(0,4).trim(),16);
-                list.value[addr] = line;
+                l.addr = addr;
             } else {
                 if (xas99)
-                    line = line.substring(5);
+                    l.text = line = line.substring(5);
                 if (re.test(line)) {
                     let addr = parseInt(line.substring(0, 4), 16);
                     let asm = line;//.substring(xas99?14:17);
-                    if (asm)
-                        list.value[addr] = asm;
+                    if (asm){
+                        l.addr = addr;
+                    }
                 }
+                if (xas99)
+                    l.text = line = line.substring(14);
+
+                //Omit blank lines
+                if ( l.text.trim().length == 0 )
+                    lines.value.pop();
             }
         }
     }
@@ -78,7 +94,15 @@ watch(() => props.list, (listing) => {
     overflow: hidden;
 }
 
+.listing>span.addr {
+    cursor: pointer;
+}
+
+.listing > span:hover.addr  {
+    background-color: rgb(99, 99, 99);
+}
+
 .current {
-    background-color: #2e7548
+    background-color: #193d26
 }
 </style>
