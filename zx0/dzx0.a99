@@ -52,7 +52,7 @@ DONE                                    ; busy loop
 ;      R7: length
 ;      R8: i
 ;        R9 Elias return
-
+;       R12: 1 for inverted elias, 0 for normal
 ; Scratch R15, R14, R13
 ; -----------------------------------------------------------------------------
 
@@ -62,7 +62,7 @@ DZX0
         LI R6, >1                       ;last_offset = INITIAL_OFFSET = 1
         LI R3, >0080                    ;bit mask = 0
         CLR R4                       ;backtrack = 0
-
+        CLR R12
 COPY_LITERALS:
         BL @ELIAS
 LIT_LOOP:
@@ -84,7 +84,9 @@ LAST_OFFSET:
 
                                         ;Uses R15 as scratch
 NEW_OFFSET
-        BL @I_ELIAS
+        INC R12                         ;Inverted!
+        BL @ELIAS
+        CLR R12
 
         CI R9, >0100                    ; Done condition
         JEQ DZX_DONE
@@ -156,29 +158,12 @@ ELIAS_LOOP
                                         ; Data bit was 0, continue
         SLA R9, 1                       ; value <<= 1
         BL @READBIT                     ; Read value bit
+        XOR R12, R15
         JEQ ELIAS_NO_ADD                ; If bit was 0, don't add
         INC R9                          ; value |= 1
 ELIAS_NO_ADD
         JMP ELIAS_LOOP
 ELIAS_DONE
-        B *R14
-
-                                        ;Uses R14 as scratch
-                                        ;Retrns in R9
-I_ELIAS
-        MOV R11, R14                    ; Save return address
-        LI R9, 1                        ; value = 1
-I_ELIAS_LOOP
-        BL @READBIT                     ; Read data bit
-        JNE I_ELIAS_DONE                ; If bit=1, done
-                                        ; Data bit was 0, continue
-        SLA R9, 1                       ; value <<= 1
-        BL @READBIT                     ; Read value bit
-        JNE I_ELIAS_NO_ADD              ; If bit was 0, don't add
-        INC R9                          ; value |= 1
-I_ELIAS_NO_ADD
-        JMP I_ELIAS_LOOP
-I_ELIAS_DONE
         B *R14
 
 ; -----------------------------------------------------------------------------
