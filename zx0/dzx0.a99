@@ -61,7 +61,7 @@ DZX0
         MOV R11, R13
         LI R6, >1                       ;last_offset = INITIAL_OFFSET = 1
         LI R3, >0080                    ;bit mask = 0
-        LI R4, >0                       ;backtrack = 0
+        CLR R4                       ;backtrack = 0
 
 COPY_LITERALS:
         BL @ELIAS
@@ -71,7 +71,7 @@ LIT_LOOP:
         JNE LIT_LOOP
 
         BL @READBIT                     ;if (read_bit())
-        JEQ NEW_OFFSET                  ;       goto COPY_FROM_NEW_OFFSET;
+        JNE NEW_OFFSET                  ;       goto COPY_FROM_NEW_OFFSET;
 
                                         ;Uses R15 as scratch
 LAST_OFFSET:
@@ -80,7 +80,7 @@ LAST_OFFSET:
         BL @WRITE_OFFSET
 
         BL @READBIT                     ;if (!read_bit())
-        JNE COPY_LITERALS               ;       goto COPY_LITERALS;
+        JEQ COPY_LITERALS               ;       goto COPY_LITERALS;
 
                                         ;Uses R15 as scratch
 NEW_OFFSET
@@ -103,16 +103,14 @@ NEW_OFFSET
 
         BL @ELIAS
         INC R9                          ; R9 length = read_interlaced_elias_gamma(0) + 1;
-
         BL @WRITE_OFFSET
 
-
-
         BL @READBIT
-        JEQ NEW_OFFSET
+        JNE NEW_OFFSET
         JMP COPY_LITERALS
 DZX_DONE
         B *R13
+
 
 WRITE_OFFSET
         MOV R1, R15                     ; R6 = current output_ptr
@@ -124,26 +122,27 @@ WRITE_OFFSET_LOOP:
         B *R11
 
 
-                                        ;Uses R15 as Scratch
+                                        ;Uses R15 as Scratch & Return Value
 READBIT                                 ; Warning status is backwards!
         MOV R4, R4
         JEQ READBIT_NO_BACKTRACK
         CLR R4
         MOV R5, R15
-        INV R15
         ANDI R15, >0100
         B *R11
 READBIT_NO_BACKTRACK
-        MOV R3, R15
-        ANDI R15, >0080
-        JEQ READBIT_HAVE_BYTE
+        CI R3, >0080
+        JNE READBIT_HAVE_BYTE
         MOVB *R0+, R2
         LI R3, >8000
 READBIT_HAVE_BYTE
+        CLR R15
+        COC R3,R2
+        JNE READBIT_ZERO
+        INC R15
+READBIT_ZERO        
         SRL R3, 1
-        MOV R2, R15
-        SRL R15, 1
-        COC R3, R15
+        MOV R15, R15
         B *R11
 
                                         ;Uses R14 as scratch
@@ -153,11 +152,11 @@ ELIAS
         LI R9, 1                        ; value = 1
 ELIAS_LOOP
         BL @READBIT                     ; Read data bit
-        JEQ ELIAS_DONE                  ; If bit=1, done
+        JNE ELIAS_DONE                  ; If bit=1, done
                                         ; Data bit was 0, continue
         SLA R9, 1                       ; value <<= 1
         BL @READBIT                     ; Read value bit
-        JNE ELIAS_NO_ADD                ; If bit was 0, don't add
+        JEQ ELIAS_NO_ADD                ; If bit was 0, don't add
         INC R9                          ; value |= 1
 ELIAS_NO_ADD
         JMP ELIAS_LOOP
@@ -171,11 +170,11 @@ I_ELIAS
         LI R9, 1                        ; value = 1
 I_ELIAS_LOOP
         BL @READBIT                     ; Read data bit
-        JEQ I_ELIAS_DONE                ; If bit=1, done
+        JNE I_ELIAS_DONE                ; If bit=1, done
                                         ; Data bit was 0, continue
         SLA R9, 1                       ; value <<= 1
         BL @READBIT                     ; Read value bit
-        JEQ I_ELIAS_NO_ADD              ; If bit was 0, don't add
+        JNE I_ELIAS_NO_ADD              ; If bit was 0, don't add
         INC R9                          ; value |= 1
 I_ELIAS_NO_ADD
         JMP I_ELIAS_LOOP
@@ -186,5 +185,5 @@ I_ELIAS_DONE
 
 
 ZDATA
-        BCOPY "./C/test/test1.z"
+        BCOPY "C/test/test1.z"
         END
