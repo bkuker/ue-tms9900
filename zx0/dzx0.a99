@@ -76,12 +76,8 @@ LIT_LOOP:
                                         ;Uses R15 as scratch
 LAST_OFFSET:
         BL @ELIAS
-        MOV R1, R15                     ; R6 = current output_ptr
-        S R6, R15                       ; R6 = output_ptr - last_offset
-LAST_OFFSET_LOOP:
-        MOVB *R15+, *R1+                ; *output_ptr++ = *(output_ptr - offset)++
-        DEC R9
-        JNE LAST_OFFSET_LOOP
+
+        BL @WRITE_OFFSET
 
         BL @READBIT                     ;if (!read_bit())
         JNE COPY_LITERALS               ;       goto COPY_LITERALS;
@@ -108,12 +104,9 @@ NEW_OFFSET
         BL @ELIAS
         INC R9                          ; R9 length = read_interlaced_elias_gamma(0) + 1;
 
-        MOV R1, R15                     ; R6 = current output_ptr
-        S R6, R15                       ; R6 = output_ptr - last_offset
-NEW_OFFSET_LOOP:
-        MOVB *R15+, *R1+                ; *output_ptr++ = *(output_ptr - offset)++
-        DEC R9
-        JNE NEW_OFFSET_LOOP
+        BL @WRITE_OFFSET
+
+
 
         BL @READBIT
         JEQ NEW_OFFSET
@@ -121,6 +114,14 @@ NEW_OFFSET_LOOP:
 DZX_DONE
         B *R13
 
+WRITE_OFFSET
+        MOV R1, R15                     ; R6 = current output_ptr
+        S R6, R15                       ; R6 = output_ptr - last_offset
+WRITE_OFFSET_LOOP:
+        MOVB *R15+, *R1+                ; *output_ptr++ = *(output_ptr - offset)++
+        DEC R9
+        JNE WRITE_OFFSET_LOOP
+        B *R11
 
 
                                         ;Uses R15 as Scratch
