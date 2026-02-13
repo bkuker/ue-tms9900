@@ -11,11 +11,6 @@
                     </li>
                 </ul>
             </div>
-
-            <button v-if="canUpload" @click="uploadFiles" class="upload-button">
-                Load & Reset
-            </button>
-
             <p v-if="error" class="error">{{ error }}</p>
         </div>
     </div>
@@ -29,12 +24,6 @@ const emit = defineEmits(['filesUploaded']);
 const selectedFiles = ref([]);
 const error = ref('');
 
-const canUpload = computed(() => {
-    const romCount = selectedFiles.value.filter(f => f.name.endsWith('.rom')).length;
-    const lstCount = selectedFiles.value.filter(f => f.name.endsWith('.lst')).length;
-    return romCount === 1 && lstCount <= 1;
-});
-
 const handleFiles = (event) => {
     selectedFiles.value = Array.from(event.target.files);
     error.value = '';
@@ -46,6 +35,8 @@ const handleFiles = (event) => {
         error.value = 'Please select exactly one .rom file';
     } else if (lstCount > 1) {
         error.value = 'Please select at most one .lst file';
+    } else {
+        uploadFiles();
     }
 };
 
@@ -54,8 +45,6 @@ const getFileType = (filename) => {
 };
 
 const uploadFiles = async () => {
-    if (!canUpload.value) return;
-
     try {
         const romFile = selectedFiles.value.find(f => f.name.endsWith('.rom'));
         const listFile = selectedFiles.value.find(f => f.name.endsWith('.lst'));
