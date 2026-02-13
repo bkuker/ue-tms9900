@@ -45,14 +45,15 @@ DONE                                    ; busy loop
 ;   R0:  Input Pointer
 ;   R1:  Output Pointer
 ;   R2:  Bit value (current byte being read bit-by-bit)
-;   R3:  Bit mask (0x8000, 0x4000, ... 0x0001, then refill)
+;   R3:  Bit mask (0x8000, 0x4000, ... 0x0100, then refill)
 ;   R4:  Backtrack
 ;   R5:  Last Byte
-;      R6: last_offset
-;      R7: length
-;      R8: i
-;        R9 Elias return
-;       R12: 1 for inverted elias, 0 for normal
+;   R6: last_offset
+;   R7: length
+;   R8: i
+;   R9 Elias return
+;   R12: 1 for inverted elias, 0 for normal
+;   R15: Read bit return
 ; Scratch R15, R14, R13
 ; -----------------------------------------------------------------------------
 
@@ -61,7 +62,7 @@ DZX0
         MOV R11, R13
         LI R6, >1                       ;last_offset = INITIAL_OFFSET = 1
         LI R3, >0080                    ;bit mask = 0
-        CLR R4                       ;backtrack = 0
+        CLR R4                          ;backtrack = 0
         CLR R12
 COPY_LITERALS:
         BL @ELIAS
@@ -113,8 +114,8 @@ NEW_OFFSET
 DZX_DONE
         B *R13
 
-
-WRITE_OFFSET
+                                        ;Uses R15 as Scratch & Return Value
+WRITE_OFFSET                            ;Leaf function, no need to store R11
         MOV R1, R15                     ; R6 = current output_ptr
         S R6, R15                       ; R6 = output_ptr - last_offset
 WRITE_OFFSET_LOOP:
@@ -125,7 +126,7 @@ WRITE_OFFSET_LOOP:
 
 
                                         ;Uses R15 as Scratch & Return Value
-READBIT                                 ; Warning status is backwards!
+READBIT                                 ;Leaf function, no need to store R11
         MOV R4, R4
         JEQ READBIT_NO_BACKTRACK
         CLR R4
@@ -133,18 +134,18 @@ READBIT                                 ; Warning status is backwards!
         ANDI R15, >0100
         B *R11
 READBIT_NO_BACKTRACK
-        CI R3, >0080
-        JNE READBIT_HAVE_BYTE
-        MOVB *R0+, R2
-        LI R3, >8000
+        CI R3, >0080                    ;Has the bit fallen off the high bit?
+        JNE READBIT_HAVE_BYTE           ; if not there are still bits left to read
+        MOVB *R0+, R2                   ;read the new byte
+        LI R3, >8000                    ;reset the bit mask
 READBIT_HAVE_BYTE
-        CLR R15
-        COC R3,R2
-        JNE READBIT_ZERO
-        INC R15
-READBIT_ZERO        
-        SRL R3, 1
-        MOV R15, R15
+        CLR R15                         ;Prepare to return zero
+        COC R3, R2                      ;Check byte vs mask
+        JNE READBIT_ZERO                ;Jump to zero return
+        INC R15                         ;Change return to one
+READBIT_ZERO
+        SRL R3, 1                       ;Shift mask
+        MOV R15, R15                    ;Reload return value so callers can just use EQ status bit
         B *R11
 
                                         ;Uses R14 as scratch
@@ -158,10 +159,8 @@ ELIAS_LOOP
                                         ; Data bit was 0, continue
         SLA R9, 1                       ; value <<= 1
         BL @READBIT                     ; Read value bit
-        XOR R12, R15
-        JEQ ELIAS_NO_ADD                ; If bit was 0, don't add
-        INC R9                          ; value |= 1
-ELIAS_NO_ADD
+        XOR R12, R15                    ; possibly invert the one bit
+        A R15, R9                       ; R15 is 1 or zero, add it
         JMP ELIAS_LOOP
 ELIAS_DONE
         B *R14
