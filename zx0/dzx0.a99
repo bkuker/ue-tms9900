@@ -1,0 +1,189 @@
+                                        ; Mux0 Constants
+M0STAT  EQU >F000                       ;  Read status: bit 0 = Transmit Busy, bit 1 = Data Received
+M0RX    EQU >F002                       ;  Read byte received in 8 LSB
+M0TXW   EQU >F004                       ;  Write byte to send in 8 LSB
+M0TXB   EQU >F005                       ;  Write byte to send in 8 LSB
+M0RST   EQU >F006                       ;  Write to reset interrupt and Data Received status
+M0IRQ   EQU >3
+
+        RORG >0000
+        DATA >1000                      ; >1000 is the workspace pointer
+        DATA START
+
+        RORG >0080
+
+START                                   ;Uncompress
+        LI R0, ZDATA                    ;Input data in rom
+        LI R1, >2000                    ;output in ram
+        BL @DZX0                        ;Call
+PRINT
+        LI R1, >2000                    ;output address
+CHAR
+        MOVB *R1+, R2                   ;Load output byte
+        JEQ DONE                        ;done if zero
+        MOVB R2, @M0TXB                 ;transmint
+WAIT                                    ;Wait for mux0 status to be zero
+        MOV @M0STAT, R2
+        JNE WAIT
+        JMP CHAR
+DONE                                    ; busy loop
+        JMP DONE
+
+
+; -----------------------------------------------------------------------------
+; ZX0 decoder for TMS9900
+; Based on Z80 "Standard" version by Einar Saukas & Urusergi
+; Ported for TMS9900 architecture
+; -----------------------------------------------------------------------------
+; Usage:
+;   LI   R0,COMPRESSED_ADDR     ; Source address (compressed data in ROM)
+;   LI   R1,DEST_ADDR           ; Destination address (RAM)
+;   BL   @DZX0
+;   ; On return: R1 points to byte after last decompressed byte
+; -----------------------------------------------------------------------------
+; Register usage:
+;   R0:  Input Pointer
+;   R1:  Output Pointer
+;   R2:  Bit value (current byte being read bit-by-bit)
+;   R3:  Bit mask (0x8000, 0x4000, ... 0x0001, then refill)
+;   R4:  Backtrack
+;   R5:  Last Byte
+;      R6: last_offset
+;      R7: length
+;      R8: i
+;        R9 Elias return
+
+; Scratch R15, R14, R13
+; -----------------------------------------------------------------------------
+
+                                        ; Uses R13 as scratch
+DZX0
+        MOV R11, R13
+        LI R6, >1                       ;last_offset = INITIAL_OFFSET = 1
+        LI R3, >0080                    ;bit mask = 0
+        LI R4, >0                       ;backtrack = 0
+
+COPY_LITERALS:
+        BL @ELIAS
+LIT_LOOP:
+        MOVB *R0+, *R1+                 ; *output_ptr++ = *input_ptr++
+        DEC R9
+        JNE LIT_LOOP
+
+        BL @READBIT                     ;if (read_bit())
+        JEQ NEW_OFFSET                  ;       goto COPY_FROM_NEW_OFFSET;
+
+                                        ;Uses R15 as scratch
+LAST_OFFSET:
+        BL @ELIAS
+        MOV R1, R15                     ; R6 = current output_ptr
+        S R6, R15                       ; R6 = output_ptr - last_offset
+LAST_OFFSET_LOOP:
+        MOVB *R15+, *R1+                ; *output_ptr++ = *(output_ptr - offset)++
+        DEC R9
+        JNE LAST_OFFSET_LOOP
+
+        BL @READBIT                     ;if (!read_bit())
+        JNE COPY_LITERALS               ;       goto COPY_LITERALS;
+
+                                        ;Uses R15 as scratch
+NEW_OFFSET
+        BL @I_ELIAS
+
+        CI R9, >0100                    ; Done condition
+        JEQ DZX_DONE
+
+        MOV R9, R6                      ;last_offset = read_interlaced_elias_gamma(1);
+        MOVB *R0+, R5                   ;last_byte = *input_ptr++;
+
+                                        ;last_offset = last_offset * 128 - (last_byte >> 1);
+        SLA R6, 7                       ;last_offset = last_offset * 128
+        MOV R5, R15                     ; R15 = last_byte
+        SWPB R15
+        SRL R15, 1                      ; R15 = last_byte >> 1
+        S R15, R6                       ;last_offset = last_offset * 128 - (last_byte >> 1);
+
+        LI R4, 1                        ;backtrack = 1
+
+        BL @ELIAS
+        INC R9                          ; R9 length = read_interlaced_elias_gamma(0) + 1;
+
+        MOV R1, R15                     ; R6 = current output_ptr
+        S R6, R15                       ; R6 = output_ptr - last_offset
+NEW_OFFSET_LOOP:
+        MOVB *R15+, *R1+                ; *output_ptr++ = *(output_ptr - offset)++
+        DEC R9
+        JNE NEW_OFFSET_LOOP
+
+        BL @READBIT
+        JEQ NEW_OFFSET
+        JMP COPY_LITERALS
+DZX_DONE
+        B *R13
+
+
+
+                                        ;Uses R15 as Scratch
+READBIT                                 ; Warning status is backwards!
+        MOV R4, R4
+        JEQ READBIT_NO_BACKTRACK
+        CLR R4
+        MOV R5, R15
+        INV R15
+        ANDI R15, >0100
+        B *R11
+READBIT_NO_BACKTRACK
+        MOV R3, R15
+        ANDI R15, >0080
+        JEQ READBIT_HAVE_BYTE
+        MOVB *R0+, R2
+        LI R3, >8000
+READBIT_HAVE_BYTE
+        SRL R3, 1
+        MOV R2, R15
+        SRL R15, 1
+        COC R3, R15
+        B *R11
+
+                                        ;Uses R14 as scratch
+                                        ;Retrns in R9
+ELIAS
+        MOV R11, R14                    ; Save return address
+        LI R9, 1                        ; value = 1
+ELIAS_LOOP
+        BL @READBIT                     ; Read data bit
+        JEQ ELIAS_DONE                  ; If bit=1, done
+                                        ; Data bit was 0, continue
+        SLA R9, 1                       ; value <<= 1
+        BL @READBIT                     ; Read value bit
+        JNE ELIAS_NO_ADD                ; If bit was 0, don't add
+        INC R9                          ; value |= 1
+ELIAS_NO_ADD
+        JMP ELIAS_LOOP
+ELIAS_DONE
+        B *R14
+
+                                        ;Uses R14 as scratch
+                                        ;Retrns in R9
+I_ELIAS
+        MOV R11, R14                    ; Save return address
+        LI R9, 1                        ; value = 1
+I_ELIAS_LOOP
+        BL @READBIT                     ; Read data bit
+        JEQ I_ELIAS_DONE                ; If bit=1, done
+                                        ; Data bit was 0, continue
+        SLA R9, 1                       ; value <<= 1
+        BL @READBIT                     ; Read value bit
+        JEQ I_ELIAS_NO_ADD              ; If bit was 0, don't add
+        INC R9                          ; value |= 1
+I_ELIAS_NO_ADD
+        JMP I_ELIAS_LOOP
+I_ELIAS_DONE
+        B *R14
+
+; -----------------------------------------------------------------------------
+
+
+ZDATA
+        BCOPY "./C/test/test1.z"
+        END
