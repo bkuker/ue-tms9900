@@ -96,7 +96,7 @@ onMounted(async () => {
         <RomUpload @files-uploaded="handleUpload" />
       </div>
       <Ram :list="list" :memory="ue.memory" />
-    <List :list="list" :cpu="ue.cpu" />
+    <List :list="list" :cpu="ue.cpu" @runTo="runTo"/>
   </div>
 </template>
 

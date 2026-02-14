@@ -1,10 +1,8 @@
 <template>
     <div class="listing">
-        <span 
-            v-for="(line) in lines" :class="{ current: pc == line.addr, addr: line.addr }"
+        <span v-for="(line) in lines" :class="{ current: pc == line.addr, addr: line.addr }"
             :style="{ color: 'hsl(0, ' + (100 * Math.pow(profile[line.addr] / max, .4)) + '%, 50%)' }"
-            @dblclick="$emit('runTo', line.addr)"
-            >{{ line.text + "\n" }}</span>
+            @dblclick="$emit('runTo', line.addr)">{{ line.text + "\n" }}</span>
     </div>
 </template>
 <script setup>
@@ -31,8 +29,8 @@ function update() {
         profile.value = cpu.getProfile();
         let m = 0;
         for (let line of lines.value) {
-            if ( line.addr)
-              m = Math.max(m, profile.value[line.addr]);
+            if (line.addr)
+                m = Math.max(m, profile.value[line.addr]);
         }
         max.value = m;
     }
@@ -43,32 +41,40 @@ requestAnimationFrame(update);
 watch(() => props.list, (listing) => {
     lines.value = [];
     if (listing) {
-        const re = /^[0-9a-fA-F]{4}/;
+        
         const xas99 = listing.startsWith("XAS99");
         const gcc = listing.includes("elf32-tms9900");
-        for (let line of listing.split(/\r?\n/)) {
-            let l = {};
-            lines.value.push(l);
-            l.text = line;
-            if (gcc && line[4] == ':') {
-                let addr = parseInt(line.substring(0,4).trim(),16);
-                l.addr = addr;
-            } else {
-                if (xas99)
-                    l.text = line = line.substring(5);
+
+        if (listing.includes("elf32-tms9900")) {
+            const re = /^[0-9a-fA-F]{1,4}:/;
+            for (let line of listing.split(/\r?\n/)) {
+                let l = {};
+                l.text = line;
+                if ( re.test(line.trim()) ){
+                    //is an address
+                    let addr = line.trim();
+                    addr = addr.substring(0, addr.indexOf(':'));
+                    addr = parseInt(addr, 16);
+                    l.addr = addr;
+                }
+                if (l.text.trim().length > 0)
+                    lines.value.push(l);
+            }
+        } else if (listing.startsWith("XAS99")) {
+            const re = /^[0-9a-fA-F]{4}/;
+            for (let line of listing.split(/\r?\n/)) {
+                let l = {};
+                l.text = line = line.substring(5);
                 if (re.test(line)) {
                     let addr = parseInt(line.substring(0, 4), 16);
-                    let asm = line;//.substring(xas99?14:17);
-                    if (asm){
+                    let asm = line;
+                    if (asm) {
                         l.addr = addr;
                     }
                 }
-                if (xas99)
-                    l.text = line = line.substring(14);
-
-                //Omit blank lines
-                if ( l.text.trim().length == 0 )
-                    lines.value.pop();
+                l.text = line = line.substring(14);
+                if (l.text.trim().length > 0)
+                    lines.value.push(l);
             }
         }
     }
@@ -98,7 +104,7 @@ watch(() => props.list, (listing) => {
     cursor: pointer;
 }
 
-.listing > span:hover.addr  {
+.listing>span:hover.addr {
     background-color: rgb(99, 99, 99);
 }
 
