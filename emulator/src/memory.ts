@@ -31,7 +31,7 @@ export class RAM implements MemoryMapped {
     writeWord(addr: number, w: number, cpu: CPU) {
         //console.log(`Write to 0x${addr.toString(16)}: 0x${w.toString(16)}`);
         cpu.addCycles(4); //Probably a TI99 thing, ram behind video processor
-        const offset = addr - 0x1000;
+        const offset = addr - this.baseAddr;
         this.ram[offset] = w >> 8;
         this.ram[offset + 1] = w & 0xFF;
     }
@@ -58,10 +58,6 @@ export class ROM extends RAM {
 
 export class Memory {
     private log: Log = Log.getLog();
-    private rom: Uint8Array = new Uint8Array(12 * 1024); //TODO
-    private ram: Uint8Array = new Uint8Array(12 * 1024);
-
-
 
     private map: MemoryMapped[];
 
