@@ -16,7 +16,7 @@ export class UeTMS990 {
     constructor(romData: Uint8Array) {
         this.intEnc = new InterruptEncoder();
         this.memory = new Memory([
-            new ROM(0x0000, 2 * 1024, romData),
+            new ROM(0x0000, 4 * 1024, romData),
             new RAM(0x1000, 12 * 1024),
             this.mux0 = new UeUart(0xF000, 3, this.intEnc),
             this.mux1 = new UeUart(0XF00A, 4, this.intEnc),
