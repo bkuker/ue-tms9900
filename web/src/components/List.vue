@@ -2,7 +2,7 @@
     <div class="listing">
         <span v-for="(line) in lines" :class="{ current: pc == line.addr, addr: line.addr }"
             :style="{ color: 'hsl(0, ' + (100 * Math.pow(profile[line.addr] / max, .4)) + '%, 50%)' }"
-            @dblclick="$emit('runTo', line.addr)">{{ line.text + "\n" }}</span>
+            @dblclick="$emit('runTo', line.addr)">({{ profile[line.addr] }}){{ line.text + "\n" }}</span>
     </div>
 </template>
 <script setup>
