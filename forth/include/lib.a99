@@ -1,0 +1,46 @@
+        .def setjmp
+setjmp:
+        MOV r0, *r1+
+                                        ;Note r1 is param, ignored
+        MOV r2, *r1+
+        MOV r3, *r1+
+        MOV r4, *r1+
+        MOV r5, *r1+
+        MOV r6, *r1+
+        MOV r7, *r1+
+        MOV r8, *r1+
+        MOV r9, *r1+
+        MOV r10, *r1+
+        MOV r11, *r1+                   ;also PC
+        MOV r12, *r1+
+        MOV r13, *r1+
+        MOV r14, *r1+
+        MOV r15, *r1+
+        LI r1, >0
+        B *r11
+
+        .def longjmp
+longjmp:
+        MOV r2, @longjmp_retval                 ; Save return value to memory
+        MOV *r1+, r0
+                                        ;r1 skipped
+        MOV *r1+, r2
+        MOV *r1+, r3
+        MOV *r1+, r4
+        MOV *r1+, r5
+        MOV *r1+, r6
+        MOV *r1+, r7
+        MOV *r1+, r8
+        MOV *r1+, r9
+        MOV *r1+, r10
+        MOV *r1+, r11                   ;also PC
+        MOV *r1+, r12
+        MOV *r1+, r13
+        MOV *r1+, r14
+        MOV *r1+, r15
+
+        MOV @longjmp_retval, r1                 ; Second param is return value
+        B *r11
+
+longjmp_retval:
+        BSS 2
