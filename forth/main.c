@@ -57,7 +57,7 @@ zf_input_state zf_host_sys(zf_ctx *ctx, zf_syscall_id id, const char *input)
 			break;
 
 		case ZF_SYSCALL_PRINT:
-			puts(itoa_small(zf_pop(ctx), buf, 16));
+			puts(itoa_small(zf_pop(ctx), buf, 15));
 			break;
 	}
 
