@@ -18,7 +18,7 @@ onMounted(() => {
     cols: 80,
     rows: 24,
     cursorBlink: true,
-    fontSize: 12,
+    fontSize: 10,
     theme: {
       background: '#252525',
       foreground: '#d4d4d4'
@@ -52,13 +52,14 @@ defineExpose({ write })
 </script>
 
 <style scoped>
-.terminal-container {
+.emulator .terminal-container {
   width: fit-content;
+  background-color: #252525;
+}
+.emulator.stylish .terminal-container {
   /* Shrink to terminal's actual size */
-
-  border: 20px solid #4A392E;
-  border-radius: 10px;
-  padding: 10px 0 10px 10px;
+  border: 10px solid #4A392E;
+  border-radius: 5px;
   background-color: #252525;
 }
 

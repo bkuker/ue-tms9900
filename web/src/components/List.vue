@@ -2,7 +2,9 @@
     <div class="listing">
         <span v-for="(line) in lines" :class="{ current: pc == line.addr, addr: line.addr }"
             :style="{ color: 'hsl(0, ' + (100 * Math.pow(profile[line.addr] / max, .4)) + '%, 50%)' }"
-            @dblclick="$emit('runTo', line.addr)">({{ profile[line.addr] }}){{ line.text + "\n" }}</span>
+            @dblclick="$emit('runTo', line.addr)">
+            {{ line.addr?line.addr.toString(16).padStart(4,'0')+': ':"      " }} {{ line.text + "\n" }}
+        </span>
     </div>
 </template>
 <script setup>
@@ -41,7 +43,7 @@ requestAnimationFrame(update);
 watch(() => props.list, (listing) => {
     lines.value = [];
     if (listing) {
-        
+
         const xas99 = listing.startsWith("XAS99");
         const gcc = listing.includes("elf32-tms9900");
 
@@ -50,7 +52,7 @@ watch(() => props.list, (listing) => {
             for (let line of listing.split(/\r?\n/)) {
                 let l = {};
                 l.text = line;
-                if ( re.test(line.trim()) ){
+                if (re.test(line.trim())) {
                     //is an address
                     let addr = line.trim();
                     addr = addr.substring(0, addr.indexOf(':'));
@@ -87,11 +89,14 @@ watch(() => props.list, (listing) => {
     white-space: pre;
     font-family: monospace;
     font-size: smaller;
-    column-width: 440px;
-    column-gap: 10px;
     background-color: #252525;
     color: #d4d4d4;
     padding: 20px;
+}
+
+.listing.columns {
+    column-width: 440px;
+    column-gap: 10px;
 }
 
 .listing>span {

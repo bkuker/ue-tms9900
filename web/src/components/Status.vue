@@ -76,10 +76,15 @@ requestAnimationFrame(update);
 </script>
 
 <style scoped>
-div.scope > div {
-    display: inline-block;
-    margin-left: 30px;
+div.scope {
+   
 }
+
+div.scope>div {
+    display: inline-block;
+    vertical-align: top;
+}
+
 .list {
     font-family: monospace;
     white-space: pre;
