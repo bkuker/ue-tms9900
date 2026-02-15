@@ -5,7 +5,6 @@ import { ref, onMounted, watch } from 'vue';
 import { UeTMS990 } from '@ue-tms9900/emulator/UeTMS990';
 import RomUpload from './components/RomUpload.vue';
 import List from './components/List.vue';
-import Ram from './components/Ram.vue';
 
 const ue = ref<UeTMS990>();
 const term0 = ref();
@@ -14,10 +13,13 @@ const running = ref(false);
 const list = ref<string>();
 const romImage = ref<Uint8Array>();
 
+const listRef = ref();
+
 const step = () => {
   ue.value.intEnc.enabled = false;
   ue.value.cpu.run(1, false);
   ue.value.intEnc.enabled = true;
+  listRef.value?.scrollToPC();
 }
 
 const stepI = () => {
@@ -30,8 +32,8 @@ function handleUpload(files) {
   list.value = files.list.data;
 }
 
-function runTo(a){
-  if (!running.value ){
+function runTo(a) {
+  if (!running.value) {
     ue.value.cpu.setAuxBreakpoint(a);
     running.value = true;
   }
@@ -57,12 +59,15 @@ onMounted(async () => {
   while (true) {
     if (running.value && ue.value) {
       ue.value.cpu.run(2000, false);
-      if ( ue.value.cpu.isStoppedAtBreakpoint() ){
+      if (ue.value.cpu.isStoppedAtBreakpoint()) {
         running.value = false;
       }
       //But yield every so often so UARTs and other things 
       //do their thing
       await new Promise(r => setTimeout(r, 0));
+      if ( !running.value ){
+        listRef.value?.scrollToPC();
+      }
     } else {
       await new Promise(r => setTimeout(r, 100));
     }
@@ -72,7 +77,7 @@ onMounted(async () => {
 </script>
 
 <template>
- <div class="emulator" v-if="ue">
+  <div class="emulator" v-if="ue">
     <div class="term0 term">
       <Terminal ref="term0" @byte="(b) => ue.mux0.offerByteFromTerminal(b)"></Terminal>
     </div>
@@ -95,41 +100,14 @@ onMounted(async () => {
       <RomUpload @files-uploaded="handleUpload" />
     </div>
     <div class="list">
-      <List :list="list" :cpu="ue.cpu" @runTo="runTo"/>
+      <List :list="list" :cpu="ue.cpu" @runTo="runTo" ref="listRef" />
     </div>
   </div>
-  <!--
-  <h1>UE TMS9900 Homebrew Emulator</h1>
-  <div v-if="ue" class="ue">
-      <div class="term">
-        <Terminal ref="term0" @byte="(b) => ue.mux0.offerByteFromTerminal(b)"></Terminal>
-        MUX0
-      </div>
-      <div class="term">
-        <Terminal ref="term1" @byte="(b) => ue.mux1.offerByteFromTerminal(b)"></Terminal>
-        MUX1
-      </div>
-      <Status :ue="ue"></Status>
-      <div class="controls">
-        <h2>Controls:</h2>
-        <button @click="running = true" :disabled="running">Run</button>
-        <button @click="running = false" :disabled="!running">Halt</button>
-        <button @click="step" :disabled="running">Step</button>
-        <button @click="stepI" :disabled="running">Step with Interrupts</button>
-        <div>
-          Timer: <input type="range" min="0" max="50" v-model.number="ue.timer.hz">{{ ue.timer.hz }}Hz
-        </div>
-
-        <RomUpload @files-uploaded="handleUpload" />
-      </div>
-      <Ram :list="list" :memory="ue.memory" />
-    <List :list="list" :cpu="ue.cpu" @runTo="runTo"/>
-  </div>-->
 </template>
 
 <style scoped>
 .emulator {
-    position:absolute;
+  position: absolute;
   top: 0;
   bottom: 0;
   left: 0;
@@ -143,28 +121,29 @@ onMounted(async () => {
   grid-template-rows: auto 1fr 1fr;
 }
 
-.emulator > div {
-
-}
-
 div.term0 {
   grid-area: term0;
 }
+
 div.term1 {
   grid-area: term1;
 }
+
 div.status {
   grid-area: status;
   padding: 20px;
 }
+
 div.controls {
   grid-area: controls;
   padding: 20px;
 }
+
 div.list {
   grid-area: list;
   overflow-y: scroll;
 }
+
 h1 {
   margin: 0;
   padding: 20px;
@@ -184,9 +163,5 @@ h1 {
 
 button {
   margin-left: 10px;
-}
-
-.controls {
-
 }
 </style>

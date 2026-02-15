@@ -3,7 +3,7 @@
         <span v-for="(line) in lines" :class="{ current: pc == line.addr, addr: line.addr }"
             :style="{ color: 'hsl(0, ' + (100 * Math.pow(profile[line.addr] / max, .4)) + '%, 50%)' }"
             @dblclick="$emit('runTo', line.addr)">
-            {{ line.addr?line.addr.toString(16).padStart(4,'0')+': ':"      " }} {{ line.text + "\n" }}
+            {{ line.addr ? line.addr.toString(16).padStart(4, '0') + ': ' : " " }} {{ line.text + "\n" }}
         </span>
     </div>
 </template>
@@ -17,12 +17,24 @@ const props = defineProps({
     cpu: TMS9900
 });
 
+defineExpose({
+    scrollToPC
+});
+
 let lines = ref([]);
 
 let pc = ref();
 let profile = ref([]);
 let max = ref(0);
 
+function scrollToPC() {
+    let e = document.querySelector("div.listing > span.current");
+    if (e.scrollIntoViewIfNeeded)
+        e.scrollIntoViewIfNeeded();
+    else 
+        e.scrollIntoView();
+    console.log("Scrollio!");
+}
 
 function update() {
     let cpu = props.cpu;
