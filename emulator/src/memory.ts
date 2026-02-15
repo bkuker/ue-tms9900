@@ -52,7 +52,7 @@ export class ROM extends RAM {
     }
 
     writeWord(addr: number, w: number, cpu: CPU) {
-        log.warn(`Write to ROM @0x${addr.toString(16)}`);
+        throw (`Write to ROM @0x${addr.toString(16)}`);
     }
 }
 
@@ -81,7 +81,7 @@ export class Memory {
                 return mm.readWord(addr, cpu);
             }
         }
-        this.log.info(`Read from unmapped location ${addr.toString(16)}`);
+        throw (`Read from unmapped location ${addr.toString(16)}`);
         return 0;
     }
 
@@ -93,7 +93,7 @@ export class Memory {
                 return mm.writeWord(addr, w, cpu);
             }
         }
-        this.log.info(`Write to unmapped location ${addr.toString(16)}`);
+        throw (`Write to unmapped location ${addr.toString(16)}`);
         return;
     }
 
