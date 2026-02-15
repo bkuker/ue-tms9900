@@ -42,5 +42,6 @@ longjmp:
         MOV @longjmp_retval, r1                 ; Second param is return value
         B *r11
 
-longjmp_retval:
+        .bss
+longjmp_retval: ;TODO This is a not thread safe
         BSS 2
