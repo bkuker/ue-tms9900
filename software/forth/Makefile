@@ -5,7 +5,7 @@ OBJCOPY = tms9900-objcopy
 OBJDUMP = tms9900-objdump
 
 # Flags
-CFLAGS  = -ffreestanding -fno-builtin -O1 -fomit-frame-pointer -Iinclude
+CFLAGS  = -ffreestanding -fno-builtin -Os -fomit-frame-pointer -Iinclude
 ASFLAGS = 
 LDFLAGS = -nostdlib -nostartfiles -T link.ld -Wl,-Map=out.map
 

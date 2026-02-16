@@ -4,12 +4,8 @@ M0TX    EQU >F004                       ;  Write byte to send in 8 LSB
 M0TXB   EQU >F005                       ;  Write byte to send in 8 LSB
 M0RST   EQU >F006                       ;  Write to reset interrupt and Data Received status
 
-        AORG >0000                      ; Reset Vector...
-        DATA WP                      ;       OS workspace addr
-        DATA START                         ;       Init code
-
-        SAVE >2000,
-        AORG >2000
+        SAVE >1000,
+        AORG >1000
 START
         LI R1, STR                      ;Load str addr to R1
 NEXT
@@ -22,8 +18,4 @@ WAIT    MOV @M0STAT, R0                 ;Load Mux status
 
 STR     TEXT "Hello Compressed World! Hello Compression!"
         BYTE 13, 10, 0
-
-
-        DORG >1000
-WP      BSS 32
 
