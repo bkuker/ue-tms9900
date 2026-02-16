@@ -71,25 +71,33 @@ void zf_host_trace(zf_ctx *ctx, const char *fmt, va_list va)
 
 zf_cell zf_host_parse_num(zf_ctx *ctx, const char *buf)
 {
-    return *buf - '0';
+	int ret = 0;
+	while (*buf){
+		if ( *buf < '0' || *buf > '9' )
+			zf_abort(ctx, ZF_ABORT_NOT_A_WORD);
+		ret = ret * 10;
+	    ret += *buf - '0';
+		buf = buf + 1;
+	}
+	return ret;
 }
 
 
 void main(){
-    char buf[32];
+    char buf[16];
 	zf_ctx _ctx;
 	zf_ctx *ctx = &_ctx;
 
 	/* Initialize zforth */
 
-	puts("init...");
+	putchar('z');
 	zf_init(ctx, 1);
-	puts("bootstrap...");
+	putchar('F');
 	zf_bootstrap(ctx);
-	puts("eval...");
+	putchar('o');
 	zf_eval(ctx, ": . 1 sys ;");
 
-	puts("zForth ready!");
+	puts("rth.");
 	/* Main loop: read words and eval */
 
 	uint8_t l = 0;
@@ -99,7 +107,7 @@ void main(){
 		putchar(c);
 		if ( c == 13 )
 			putchar(10);
-		if(c == 10 || c == 13 ) {
+		if(c == 10 || c == 13 || c == 32) {
 			zf_result r = zf_eval(ctx, buf);
 			if(r != ZF_OK) puts("A");
 			l = 0;
