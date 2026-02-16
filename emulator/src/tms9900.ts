@@ -21,7 +21,7 @@ export class TMS9900 extends CPUCommon implements CPU {
     private countStart: number;
     private maxCount: number;
 
-    constructor(memory: Memory, intEnc : InterruptEncoder) {
+    constructor(memory: Memory, intEnc: InterruptEncoder) {
         super();
         this.memory = memory;
         this.intEnc = intEnc;
@@ -63,10 +63,30 @@ export class TMS9900 extends CPUCommon implements CPU {
         this.cycleLog = new Int32Array(0x10000);
     }
 
-    setAuxBreakpoint( pc ){
+    setAuxBreakpoint(pc) {
         this.auxBreakpoint = pc;
     }
-    
+
+    history: any[] = [];
+    addHistory() {
+        let h = {
+            pc: this.pc,
+            wp: this.wp,
+            sp: this.getMemoryWord(this.wp + (10 * 2)),
+            stack: []
+        }
+        for (let i = 0; i < 20; i++) {
+            try {
+            h.stack.push(this.getMemoryWord(h.sp + (i *2)).toString(16));
+            } catch (e) {
+                //ignore bad reads
+            }
+        }
+        this.history.push(h);
+        if (this.history.length > 500 )
+            this.history.shift();
+    }
+
     run(cyclesToRun: number, skipBreakpoint?: boolean): number {
         this.stoppedAtBreakpoint = false;
         const startCycles = this.cycles;
@@ -83,6 +103,8 @@ export class TMS9900 extends CPUCommon implements CPU {
                 this.stoppedAtBreakpoint = true;
                 cyclesToRun = -1;
             } else {
+                this.addHistory();
+
                 // Execute instruction
                 const tmpPC = this.pc;
                 const tmpCycles = this.getCycles();
@@ -96,7 +118,7 @@ export class TMS9900 extends CPUCommon implements CPU {
                     //this.log.info(Util.padr(this.disassembler.disassembleInstruction(tmpPC), ' ', 40) + instrCycles);
                 }
                 // Execute interrupt routine
-                if ( this.skip_interrupt ){
+                if (this.skip_interrupt) {
                     this.skip_interrupt = false;
                 } else {
                     const ic = this.intEnc.getInterruptState();
@@ -132,14 +154,15 @@ export class TMS9900 extends CPUCommon implements CPU {
             if (f) {
                 cycles += f.call(this);
                 if (TMS9900.PROFILE) {
-                    this.profile[(this.pc) & 0xFFFF] += cycles;
-                    this.wpProfile[this.getWp()] = (this.wpProfile[this.getWp()]|0) +  cycles;
+                    this.profile[(this.pc) & 0xFFFF] += 1;
+                    this.wpProfile[this.getWp()] = (this.wpProfile[this.getWp()] | 0) + cycles;
                 }
             } else {
                 this.log.info(Util.toHexWord((this.pc - 2) & 0xFFFF) + " " + Util.toHexWord(instruction) + " " + opcode.id + ": Not implemented");
             }
             return cycles;
         } else {
+            throw "Illegal";
             if (this.illegalCount < 256) {
                 this.log.info(Util.toHexWord((this.pc - 2) & 0xFFFF) + " " + Util.toHexWord(instruction) + ": Illegal" + (this.illegalCount === 255 ? " (suppressing further messages)" : ""));
             }
@@ -369,10 +392,10 @@ export class TMS9900 extends CPUCommon implements CPU {
         return this.wpProfile;
     }
 
-    getProfile() : Uint32Array{
+    getProfile(): Uint32Array {
         return this.profile;
     }
-    
+
     dumpProfile() {
         if (TMS9900.PROFILE) {
             const sortedProfile = [];

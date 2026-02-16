@@ -23,14 +23,18 @@ async function main(): Promise<void> {
 
     let ue = new UeTMS990(romContents);
 
+    let buf: number[] = [];
     process.stdin.setRawMode(true);
     process.stdin.resume();
     process.stdin.setEncoding('utf8');
     process.stdin.on("data", (key: string) => {
-        if (key === "\u0003")
+        if (key === "\u0003") {
             process.exit(); // Ctrl+C
-        else
-            ue.mux0.offerByteFromTerminal(key.charCodeAt(0));
+        } else {
+            for (let c of key) {
+                buf.push(c.charCodeAt(0));    //Append to buffer
+            }
+        }
     });
     ue.mux0.setTerminalByteConsumer(b => process.stdout.write(String.fromCharCode(b)));
 
@@ -38,7 +42,18 @@ async function main(): Promise<void> {
 
     //Run the CPU Continuously...
     while (true) {
-        ue.cpu.run(1000, false);
+        try {
+            ue.cpu.run(1000, false);
+            if (buf.length) {
+                if (ue.mux0.offerByteFromTerminal(buf[0])) {
+                    buf.shift();
+                }
+            }
+        } catch (e) {
+            //console.log(e);
+            await new Promise(r => setImmediate(r));
+            break;
+        }
         //But yeild every so often so UARTs and other things 
         //do their thing
         await new Promise(r => setImmediate(r));

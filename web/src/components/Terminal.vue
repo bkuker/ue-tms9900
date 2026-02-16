@@ -29,7 +29,9 @@ onMounted(() => {
 
   // Emit on each keystroke
   term.onData(data => {
-    emit('byte', data.charCodeAt(0))
+    for ( let c of data){
+     emit('byte', c.charCodeAt(0))
+    }
   })
 
   // Optional: also emit on key events for more detail
@@ -63,5 +65,4 @@ defineExpose({ write })
   background-color: #252525;
 }
 
-.xterm-viewport {}
 </style>

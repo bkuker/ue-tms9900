@@ -5,6 +5,7 @@ import { ref, onMounted, watch } from 'vue';
 import { UeTMS990 } from '@ue-tms9900/emulator/UeTMS990';
 import RomUpload from './components/RomUpload.vue';
 import List from './components/List.vue';
+import History from './components/History.vue';
 
 const ue = ref<UeTMS990>();
 const term0 = ref();
@@ -14,6 +15,9 @@ const list = ref<string>();
 const romImage = ref<Uint8Array>();
 
 const listRef = ref();
+
+  let buf0 : number[] = [];
+  let buf1 : number[] = [];
 
 const step = () => {
   ue.value.intEnc.enabled = false;
@@ -55,7 +59,6 @@ onMounted(async () => {
 
   list.value = await (await fetch("serialInt.lst")).text();
 
-
   while (true) {
     if (running.value && ue.value) {
       ue.value.cpu.run(2000, false);
@@ -65,7 +68,13 @@ onMounted(async () => {
       //But yield every so often so UARTs and other things 
       //do their thing
       await new Promise(r => setTimeout(r, 0));
-      if ( !running.value ){
+      if ( buf0.length && ue.value.mux0.offerByteFromTerminal(buf0[0]) ){
+        buf0.shift();
+      }
+      if ( buf1.length && ue.value.mux0.offerByteFromTerminal(buf1[0]) ){
+        buf1.shift();
+      }
+      if (!running.value) {
         listRef.value?.scrollToPC();
       }
     } else {
@@ -79,13 +88,13 @@ onMounted(async () => {
 <template>
   <div class="emulator" v-if="ue">
     <div class="term0 term">
-      <Terminal ref="term0" @byte="(b) => ue.mux0.offerByteFromTerminal(b)"></Terminal>
+      <Terminal ref="term0" @byte="(b) => buf0.push(b)"></Terminal>
     </div>
     <div class="term1 term">
-      <Terminal ref="term1" @byte="(b) => ue.mux1.offerByteFromTerminal(b)"></Terminal>
+      <Terminal ref="term1" @byte="(b) => buf1.push(b)"></Terminal>
     </div>
     <div class="status">
-      <Status :ue="ue"></Status>
+      <Status xv-if="!running"  :ue="ue"></Status>
     </div>
     <div class="controls">
       <h2>Controls:</h2>
@@ -100,7 +109,10 @@ onMounted(async () => {
       <RomUpload @files-uploaded="handleUpload" />
     </div>
     <div class="list">
-      <List :list="list" :cpu="ue.cpu" @runTo="runTo" ref="listRef" />
+      <List v-if="!running" :list="list" :cpu="ue.cpu" @runTo="runTo" ref="listRef" />
+    </div>
+    <div class="history">
+      <History v-if="!running" :cpu="ue.cpu" />
     </div>
   </div>
 </template>
@@ -115,10 +127,14 @@ onMounted(async () => {
   display: grid;
   grid-template-areas:
     "term0 term1 list"
-    "status status list"
-    "controls controls list";
+    "status history list"
+    "controls history list";
   grid-template-columns: 1fr 1fr 1fr;
   grid-template-rows: auto 1fr 1fr;
+}
+
+.emulator > div {
+  border: 1px solid black;
 }
 
 div.term0 {
@@ -141,6 +157,10 @@ div.controls {
 
 div.list {
   grid-area: list;
+  overflow-y: scroll;
+}
+.history {
+  grid-area: history;
   overflow-y: scroll;
 }
 
