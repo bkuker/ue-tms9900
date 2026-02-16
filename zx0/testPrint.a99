@@ -1,0 +1,36 @@
+                                        ; Mux0 Constants
+M0STAT  EQU >F000                       ;  Read status: bit 0 = Transmit Busy, bit 1 = Data Received
+M0RX    EQU >F002                       ;  Read byte received in 8 LSB
+M0TXW   EQU >F004                       ;  Write byte to send in 8 LSB
+M0TXB   EQU >F005                       ;  Write byte to send in 8 LSB
+M0RST   EQU >F006                       ;  Write to reset interrupt and Data Received status
+M0IRQ   EQU >3
+
+        RORG >0000
+        DATA >1000                      ; >1000 is the workspace pointer
+        DATA START
+
+        RORG >0080
+
+START                                   ;Uncompress
+        LI R0, ZDATA                    ;Input data in rom
+        LI R1, >2000                    ;output in ram
+        BL @DZX0                        ;Call
+PRINT
+        LI R1, >2000                    ;output address
+CHAR
+        MOVB *R1+, R2                   ;Load output byte
+        JEQ DONE                        ;done if zero
+        MOVB R2, @M0TXB                 ;transmint
+WAIT                                    ;Wait for mux0 status to be zero
+        MOV @M0STAT, R2
+        JNE WAIT
+        JMP CHAR
+DONE                                    ; busy loop
+        JMP DONE
+
+        COPY    "dzx0.a99"
+
+ZDATA
+        BCOPY "C/test/test1.z"
+        END
