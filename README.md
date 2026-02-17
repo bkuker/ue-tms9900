@@ -39,6 +39,8 @@ His repo was missing the actual patches from the AtariAge forum, and was using a
 
 If you are not using Docker or Podman or something it's time to learn that skill. The entire gcc & binutils compile happens in a container (kind of like a VM) and none of the mess leaks out into your real computer. The same is true when you run it, source goes in, results come out, nothing gross happens.
 
+Updates at https://github.com/mburkley/tms9900-gcc
+
 ### Bare Metal C
 
 So you think the main function is where your program starts?

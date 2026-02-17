@@ -4,6 +4,7 @@ node_modules
 *.lst
 *.aout
 *.rom
+*.romz
 dist/
 *.o
 *.elf

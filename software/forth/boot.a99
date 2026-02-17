@@ -18,8 +18,8 @@ START                                   ;Uncompress
         MOV R1, R11                     ;set output as return address
         JMP DZX0                        ;Call
 
-        COPY "dzx0.a99"
+        COPY "../zx0/dzx0.a99"
 
 ZDATA
-        BCOPY "C/test/test1.z"
+        BCOPY "forth.romz"
         END

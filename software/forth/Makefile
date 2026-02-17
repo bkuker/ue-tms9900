@@ -7,21 +7,21 @@ OBJDUMP = tms9900-objdump
 # Flags
 CFLAGS  = -ffreestanding -fno-builtin -Os -fomit-frame-pointer -Iinclude
 ASFLAGS = 
-LDFLAGS = -nostdlib -nostartfiles -T link.ld -Wl,-Map=out.map
+LDFLAGS = -nostdlib -nostartfiles -T link.ld -Wl,-Map=forth.map
 
 # Targets
-all: out.rom main.s out.lst
+all: forth.rom main.s forth.lst
 
 # Link
-out.elf: crt0.o main.o zforth.o include/lib_c.o include/lib_a.o link.ld Makefile
+forth.elf: crt0.o main.o zforth.o include/lib_c.o include/lib_a.o link.ld Makefile
 	$(CC) $(CFLAGS) $(LDFLAGS) crt0.o main.o include/lib_c.o include/lib_a.o zforth.o -o $@
 
 # Raw ROM image
-out.rom: out.elf Makefile
+forth.rom: forth.elf Makefile
 	$(OBJCOPY) -O binary $< $@
 
 # Disassembly
-out.lst: out.elf Makefile
+forth.lst: forth.elf Makefile
 	$(OBJDUMP) -D $< > $@
 
 # Startup assembly
