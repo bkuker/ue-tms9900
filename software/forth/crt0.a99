@@ -1,8 +1,6 @@
         .text
         .global _start
 _start:
-        LI r10, _stack_top
         BL @main
-
 hang:
         JMP hang

@@ -1,25 +1,133 @@
-                                        ; Mux0 Constants
-M0STAT  EQU >F000                       ;  Read status: bit 0 = Transmit Busy, bit 1 = Data Received
-M0RX    EQU >F002                       ;  Read byte received in 8 LSB
-M0TXW   EQU >F004                       ;  Write byte to send in 8 LSB
-M0TXB   EQU >F005                       ;  Write byte to send in 8 LSB
-M0RST   EQU >F006                       ;  Write to reset interrupt and Data Received status
-M0IRQ   EQU >3
+        COPY "../mux.a99"
+        COPY "../addrs.a99"
 
-        RORG >0000
-        DATA >4000-34                   ; workspace pointer at top of ram
-        DATA START
+TMRIRQ  EQU >1                          ; Timer IRQ
+TMRRST  EQU >F0F0
 
-        RORG >0080
+;*************************************************
+;                       Stacks
+T0_SP   EQU >4000 - >512
+T1_SP   EQU >4000 - >1024
 
-START                                   ;Uncompress
-        LI R0, ZDATA                    ;Input data in rom
-        LI R1, >1000                    ;output in ram
-        MOV R1, R11                     ;set output as return address
-        JMP DZX0                        ;Call
+        DORG >3500
+;*************************************************
+;                       Task Workspaces
+T0_WP   BSS 32
+T1_WP   BSS 32
+
+;*************************************************
+;                       Scheduler RAM
+OSWP    BSS 32                          ; Set aside 32 bytes/16 words for primary workspace
+
+TCBS                                    ; Start of TCB Table
+        BSS 6                           ; WP,PC,ST
+        BSS 6
+TCBE                                    ; End of TCB Table
+
+TCUR    BSS 2                           ; Pointer to TCB for current task
+
+M0TXP   BSS 2                           ;Mux 0 TX Pointer
+M0RXD   BSS 2                           ;Mux 0 RX Byte
+M1TXP   BSS 2                           ;Mux 1 TX Pointer
+M1RXD   BSS 2                           ;Mux 1 RX Byte
+
+;*************************************************
+;                       ROM Start
+        AORG >0000                      ; Reset Vector...
+        DATA OSWP                       ;       OS workspace addr
+        DATA UNZIP                      ;       Init code
+
+TIMERV  AORG TMRIRQ * 4                 ; Timer Vector
+        DATA OSWP                       ;       OS Workspace
+        DATA ISR_TIMER                  ;       Scheduler code
+
+;M0IRQV  AORG M0IRQ * 4
+;        DATA OSWP
+;        DATA ISR_MUX_0
+
+;M1IRQV  AORG M1IRQ * 4
+;        DATA OSWP
+;        DATA ISR_MUX_1
+
+
+
+        AORG >0100
+
+;*************************************************
+;                       TCB Initialization
+TCB_INIT_DATA                           ; Initial Ram Values
+        DATA T0_WP, UNZIP_DATA, >0001   ; Task 0 TCB //TODO FIX INT MASK!!!
+        DATA T1_WP, UNZIP_DATA, >0001   ; Task 1 TCB
+TCB_INIT_DATA_END
+
+TCB_INIT
+        LI R0, TCB_INIT_DATA            ; Copy TCBs from ROM to RAM
+        LI R1, TCBS
+        LI R2, (TCB_INIT_DATA_END-TCB_INIT_DATA)/2
+TCB_INIT_COPY
+        MOV *R0+, *R1+
+        DEC R2
+        JNE TCB_INIT_COPY
+
+INIT_STACKS
+        LI R1, MUX0
+        MOV R1, @T0_WP + (1 * 2)
+        LI R1, T0_SP
+        MOV R1, @T0_WP + (10 * 2)
+
+        LI R1, MUX1
+        MOV R1, @T1_WP + (1 * 2)
+        LI R1, T1_SP
+        MOV R1, @T1_WP + (10 * 2)
+        ;B @UNZIP_DATA
+
+                                        ; Load and run Task 1
+        LI R1, TCBS                     ; Set the first task as the "next" to run
+        JMP ISR_TIMER_RESUME            ; Jump straight to resume it!
+
+;*************************************************
+;                       Scheduler
+ISR_TIMER
+        LIMI 0                          ; INT OFF
+        CLR @TMRRST                     ; MMIO Write to clear timer interrupt
+
+        MOV @TCUR, R0                   ;Load current TCB address to R0
+        MOV R0, R1                      ;Copy to R1...
+        AI R1, >6                       ;and increment to next TCB
+
+                                        ;Loop back around to the first task
+        CI R1, TCBE                     ;If next task is NOT past the end of the TCB Table
+        JNE ISR_TIMER_SWAP              ;THEN goto SWAP
+        LI R1, TCBS                     ;ELSE set it to the first one
+ISR_TIMER_SWAP
+
+ISR_TIMER_SUSPEND                       ;Suspend task to TCB in R0
+        MOV R13, *R0+                   ; Save context to TCB
+        MOV R14, *R0+
+        MOV R15, *R0+
+ISR_TIMER_RESUME                        ;Resume task from TCB in R1
+        MOV R1, @TCUR                   ; Save as current task
+        MOV *R1+, R13                   ; Restore context from TCB
+        MOV *R1+, R14
+        MOV *R1+, R15
+        RTWP
+
+
+;*************************************************
+;                       Decompress
+UNZIP                                   ;Uncompress
+        LI R0, UNZIP_COMPRESSED_DATA    ;Input data in rom
+        LI R1, UNZIP_DATA               ;output in ram
+        BL @DZX0                        ;Call
+        JMP TCB_INIT
 
         COPY "../zx0/dzx0.a99"
 
-ZDATA
+UNZIP_COMPRESSED_DATA
         BCOPY "forth.romz"
+
+
+        DORG >1000
+UNZIP_DATA
+        BSS 1
         END

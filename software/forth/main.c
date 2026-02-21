@@ -1,32 +1,27 @@
 #include "zforth.h"
 
-static volatile unsigned short *M0STAT = (void*)0xF000;
-static volatile unsigned short *M0RX = (void*)0xF002;
-static volatile unsigned short *M0TX = (void*)0xF004;
-static volatile unsigned short *M0RST = (void*)0xF006;
-
-static void putchar(char c)
+static void putchar(volatile unsigned short *mux, char c)
 {
-    while ( *M0STAT & 0x01 );
-    *M0TX = c;
+    while ( *mux & 0x01 );
+    *(mux+2) = c;
 }
 
-static char getchar(){
+static char getchar(volatile unsigned short *mux){
     while(1){
-        if ( *M0STAT & 0x02 ){            
-            char in = *M0RX;
-            *M0RST = 0;
+        if ( *mux & 0x02 ){            
+            char in = *(mux+1);
+            *(mux+3) = 0;
             return in;
         }
     }
 }
 
-static void puts(const char *s)
+static void puts(unsigned short *mux, const char *s)
 {
     while (*s)
-        putchar(*s++);
-    putchar('\r');
-    putchar('\n');
+        putchar(mux, *s++);
+    putchar(mux, '\r');
+    putchar(mux, '\n');
 }
 
 // Writes to buffer starting at endPos, returns pointer to start
@@ -53,21 +48,17 @@ zf_input_state zf_host_sys(zf_ctx *ctx, zf_syscall_id id, const char *input)
 	switch((int)id) {
 
 		case ZF_SYSCALL_EMIT:
-			putchar((char)zf_pop(ctx));
+			putchar(ctx->mux, (char)zf_pop(ctx));
 			break;
 
 		case ZF_SYSCALL_PRINT:
-			puts(itoa_small(zf_pop(ctx), buf, 15));
+			puts(ctx->mux, itoa_small(zf_pop(ctx), buf, 15));
 			break;
 	}
 
 	return 0;
 }
 
-void zf_host_trace(zf_ctx *ctx, const char *fmt, va_list va)
-{
-	puts(fmt);
-}
 
 zf_cell zf_host_parse_num(zf_ctx *ctx, const char *buf)
 {
@@ -83,33 +74,36 @@ zf_cell zf_host_parse_num(zf_ctx *ctx, const char *buf)
 }
 
 
-void main(){
+void main(unsigned short *mux){
     char buf[16];
 	zf_ctx _ctx;
 	zf_ctx *ctx = &_ctx;
 
 	/* Initialize zforth */
 
-	putchar('z');
+	putchar(mux, 'z');
 	zf_init(ctx, 1);
-	putchar('F');
+
+	ctx->mux = mux;
+
+	putchar(mux, 'F');
 	zf_bootstrap(ctx);
-	putchar('o');
+	putchar(mux, 'o');
 	zf_eval(ctx, ": . 1 sys ;");
 
-	puts("rth.");
+	puts(mux, "rth.");
 	/* Main loop: read words and eval */
 
 	uint8_t l = 0;
 
 	for(;;) {
-		int c = getchar();
-		putchar(c);
+		int c = getchar(mux);
+		putchar(mux, c);
 		if ( c == 13 )
-			putchar(10);
+			putchar(mux, 10);
 		if(c == 10 || c == 13 || c == 32) {
 			zf_result r = zf_eval(ctx, buf);
-			if(r != ZF_OK) puts("A");
+			if(r != ZF_OK) puts(mux, "A");
 			l = 0;
 		} else if(l < sizeof(buf)-1) {
 			buf[l++] = c;
