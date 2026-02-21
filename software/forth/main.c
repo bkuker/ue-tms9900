@@ -1,8 +1,12 @@
 #include "zforth.h"
 
+#define yield __asm__("BLWP @>4")
+
 static void putchar(volatile unsigned short *mux, char c)
 {
-    while ( *mux & 0x01 );
+    while ( *mux & 0x01 )
+		yield;
+
     *(mux+2) = c;
 }
 
@@ -13,6 +17,7 @@ static char getchar(volatile unsigned short *mux){
             *(mux+3) = 0;
             return in;
         }
+		yield;
     }
 }
 
