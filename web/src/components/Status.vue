@@ -23,8 +23,8 @@
             <h2>Registers:</h2>
             <dl class="registers">
                 <template v-for="r in 16" :key="r">
-                    <dt>R{{ r }}</dt>
-                    <dd>0x{{ ue.cpu.getMemoryWord(wp + 2 * r).toString(16).padStart(4, "0") }}</dd>
+                    <dt>R{{ r-1 }}</dt>
+                    <dd>0x{{ ue.cpu.getMemoryWord(wp + 2 * (r-1)).toString(16).padStart(4, "0") }}</dd>
                 </template>
             </dl>
         </div>
