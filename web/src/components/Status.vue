@@ -28,7 +28,7 @@
                 </template>
             </dl>
         </div>
-        <div v-if="false">
+        <div>
             <h2>CPU Time:</h2>
             <dl>
                 <template v-for="(pct, wp) in pct" :key="wp">

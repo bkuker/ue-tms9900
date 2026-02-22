@@ -6,11 +6,13 @@ import { UeTMS990 } from '@ue-tms9900/emulator/UeTMS990';
 import RomUpload from './components/RomUpload.vue';
 import List from './components/List.vue';
 import History from './components/History.vue';
+import RamViz from './components/RamViz.vue';
 
 const ue = ref<UeTMS990>();
 const term0 = ref();
 const term1 = ref();
 const running = ref(false);
+const fast = ref(false);
 const list = ref<string>();
 const romImage = ref<Uint8Array>();
 
@@ -71,7 +73,7 @@ onMounted(async () => {
       if ( buf0.length && ue.value.mux0.offerByteFromTerminal(buf0[0]) ){
         buf0.shift();
       }
-      if ( buf1.length && ue.value.mux0.offerByteFromTerminal(buf1[0]) ){
+      if ( buf1.length && ue.value.mux1.offerByteFromTerminal(buf1[0]) ){
         buf1.shift();
       }
       if (!running.value) {
@@ -94,7 +96,7 @@ onMounted(async () => {
       <Terminal ref="term1" @byte="(b) => buf1.push(b)"></Terminal>
     </div>
     <div class="status">
-      <Status xv-if="!running"  :ue="ue"></Status>
+      <Status v-if="!running || !fast"  :ue="ue"></Status>
     </div>
     <div class="controls">
       <h2>Controls:</h2>
@@ -109,10 +111,11 @@ onMounted(async () => {
       <RomUpload @files-uploaded="handleUpload" />
     </div>
     <div class="list">
-      <List v-if="!running" :list="list" :cpu="ue.cpu" @runTo="runTo" ref="listRef" />
+      <List v-if="!running || !fast" :list="list" :cpu="ue.cpu" @runTo="runTo" ref="listRef" />
     </div>
     <div class="history">
-      <History v-if="!running" :cpu="ue.cpu" />
+      <!--<History v-if="!running || !fast" :cpu="ue.cpu" />-->
+      <RamViz :ue="ue"/>
     </div>
   </div>
 </template>

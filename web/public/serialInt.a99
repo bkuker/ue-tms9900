@@ -1,16 +1,5 @@
-                                        ; Mux0 Constants
-M0STAT  EQU >F000                       ;  Read status: bit 0 = Transmit Busy, bit 1 = Data Received
-M0RX    EQU >F002                       ;  Read byte received in 8 LSB
-M0TX    EQU >F004                       ;  Write byte to send in 8 LSB
-M0RST   EQU >F006                       ;  Write to reset interrupt and Data Received status
-M0IRQ   EQU >3                          ;  IRQ for Mux0
-
-                                        ; Mux1 constants
-M1STAT  EQU >F00A
-M1RX    EQU >F00C
-M1TX    EQU >F00E
-M1RST   EQU >F010
-M1IRQ   EQU >4
+        COPY "../../software/mux.a99"
+        COPY "../../software/addrs.a99"
 
 TMRIRQ  EQU >1                          ; Timer IRQ
 TMRRST  EQU >F0F0
@@ -30,9 +19,9 @@ TCBE                                    ; End of TCB Table
 TCUR    BSS 2                           ; Pointer to TCB for current task
 
 M0TXP   BSS 2                           ;Mux 0 TX Pointer
-M0RXB   BSS 2                           ;Mux 0 RX Byte
+M0RXD   BSS 2                           ;Mux 0 RX Byte
 M1TXP   BSS 2                           ;Mux 1 TX Pointer
-M1RXB   BSS 2                           ;Mux 1 RX Byte
+M1RXD   BSS 2                           ;Mux 1 RX Byte
 
 ;*************************************************
 ;                       ROM Start
@@ -42,15 +31,15 @@ M1RXB   BSS 2                           ;Mux 1 RX Byte
 
 TIMERV  AORG TMRIRQ * 4                 ; Timer Vector
         DATA OSWP                       ;       OS Workspace
-        DATA TIMER                      ;       Scheduler code
+        DATA TIMERISR                   ;       Scheduler code
 
 M0IRQV  AORG M0IRQ * 4
         DATA OSWP
-        DATA MUX0
+        DATA MUX0ISR
 
 M1IRQV  AORG M1IRQ * 4
         DATA OSWP
-        DATA MUX1
+        DATA MUX1ISR
 
         AORG >0100
 INITDATA                                ; Initial Ram Values
@@ -62,16 +51,17 @@ INIT
         LI R0, INITDATA                 ; Copy TCBs from ROM to RAM
         LI R1, TCBS
         LI R2, (INITEND-INITDATA)/2
-COPY    MOV *R0+, *R1+
+COPYD   MOV *R0+, *R1+
         DEC R2
-        JNE COPY
+        JNE COPYD
 
                                         ; Load and run Task 1
         LI R1, TCBS                     ; Set the first task as the "next" to run
         JMP RES                         ; Jump straight to resume it!
 
 
-TIMER   LIMI 0                          ; INT OFF
+TIMERISR
+        LIMI 0                          ; INT OFF
         CLR @TMRRST                     ; MMIO Write to clear timer interrupt
 
         MOV @TCUR, R0                   ;Load current TCB address to R0
@@ -95,18 +85,20 @@ RES                                     ;Resume task from TCB in R1
         MOV *R1+, R15
         RTWP
 
-MUX0    LIMI 0
+MUX0ISR
+        LIMI 0
         LI R4, M0TXP
         LI R1, M0STAT
         JMP MUXTX
 
-MUX1    LIMI 0
+MUX1ISR
+        LIMI 0
         LI R4, M1TXP
         LI R1, M1STAT
 
 MUXTX
         MOV *R1, R3                     ;Load mux status
-        CLR @6(R1)                      ;Clear IRQ
+        CLR @6(R1)                      ;Clear IRQ      //TODO Dont clear till after read?
         MOV R3, R2
         ANDI R2, >0001                  ;Transmit busy?
         JNE MUXRX                       ;If so go to RX
@@ -122,7 +114,7 @@ DONE
         CLR *R4                         ;Clear transmit pointer
 MUXRX
         MOV R3, R2
-        ANDI R2, >0002                  ;Byte received
+        ANDI R2, >0002                  ;Byte received ??
         JEQ RET
         MOV @2(R1), @2(R4)
 RET     RTWP
@@ -157,13 +149,13 @@ TOP2    LI R2, STR2                     ; Store the text address in R1
 
 LOOP2                                   ;Wait for RX Byte
         BLWP @TIMERV                    ; yield
-        MOV @M1RXB, R9                  ; Load RX Byte
+        MOV @M1RXD, R9                  ; Load RX Byte
         JEQ LOOP2                       ; If zero loop
 
         CLR @T2BUF                      ; Clear transmit buf
-        MOVB @M1RXB+1, @T2BUF           ; Move rx byte into transmit buf
+        MOVB @M1RXD+1, @T2BUF           ; Move rx byte into transmit buf
                                         ; Note second byte of word is the null
-        CLR @M1RXB                      ; Clear receive byte
+        CLR @M1RXD                      ; Clear receive byte
 
         LI R2, T2BUF                    ; Store the text address in R1
         MOV R2, @M1TXP
