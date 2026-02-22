@@ -14,7 +14,7 @@ export interface MemoryMapped {
 export class RAM implements MemoryMapped {
     private size;
     private baseAddr: number;
-    protected ram: Uint8Array;
+    ram: Uint8Array;
 
     constructor(baseAddr: number, size: number) {
         this.baseAddr = baseAddr;

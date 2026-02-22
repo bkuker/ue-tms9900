@@ -69,6 +69,7 @@ export class TMS9900 extends CPUCommon implements CPU {
 
     history: any[] = [];
     addHistory() {
+        /*
         let h = {
             pc: this.pc,
             wp: this.wp,
@@ -85,6 +86,7 @@ export class TMS9900 extends CPUCommon implements CPU {
         this.history.push(h);
         if (this.history.length > 500 )
             this.history.shift();
+        */
     }
 
     run(cyclesToRun: number, skipBreakpoint?: boolean): number {

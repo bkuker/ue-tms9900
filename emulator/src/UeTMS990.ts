@@ -12,12 +12,13 @@ export class UeTMS990 {
     mux0: UeUart;
     mux1: UeUart;
     timer: Timer;
+    ram;
 
     constructor(romData: Uint8Array) {
         this.intEnc = new InterruptEncoder();
         this.memory = new Memory([
             new ROM(0x0000, 4 * 1024, romData),
-            new RAM(0x1000, 12 * 1024),
+            this.ram = new RAM(0x1000, 12 * 1024),
             //new ROM(0x0000, 8 * 1024, romData), //TEMPORARY ROM INCREASE
             //new RAM(0x2000, 12 * 1024),
             this.mux0 = new UeUart(0xF000, 3, this.intEnc),
