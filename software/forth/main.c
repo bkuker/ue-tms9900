@@ -1,6 +1,8 @@
 #include "zforth.h"
 
-#define yield __asm__("BLWP @>4")
+#define yield //__asm__("BLWP @>4")
+
+extern char coreZF[];
 
 static void putchar(volatile unsigned short *mux, char c)
 {
@@ -68,6 +70,11 @@ zf_input_state zf_host_sys(zf_ctx *ctx, zf_syscall_id id, const char *input)
 zf_cell zf_host_parse_num(zf_ctx *ctx, const char *buf)
 {
 	int ret = 0;
+	int s = 1;
+	if ( *buf == '-' ){
+		s = -1;
+		buf++;
+	}
 	while (*buf){
 		if ( *buf < '0' || *buf > '9' )
 			zf_abort(ctx, ZF_ABORT_NOT_A_WORD);
@@ -75,7 +82,7 @@ zf_cell zf_host_parse_num(zf_ctx *ctx, const char *buf)
 	    ret += *buf - '0';
 		buf = buf + 1;
 	}
-	return ret;
+	return ret * s;
 }
 
 
@@ -94,9 +101,16 @@ void main(unsigned short *mux){
 	putchar(mux, 'F');
 	zf_bootstrap(ctx);
 	putchar(mux, 'o');
-	zf_eval(ctx, ": . 1 sys ;");
 
-	puts(mux, "rth.");
+	zf_result r = zf_eval(ctx, coreZF);
+
+	if(r == ZF_OK){
+		putchar(mux, 'r');
+	} else {
+		puts(ctx->mux, itoa_small(r, buf, 15));
+	}
+
+	puts(mux, "th.");
 	/* Main loop: read words and eval */
 
 	uint8_t l = 0;

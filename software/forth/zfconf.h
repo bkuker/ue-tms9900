@@ -54,7 +54,7 @@ typedef unsigned short zf_addr;
 /* Memory region sizes: dictionary size is given in bytes, stack sizes are
  * number of elements of type zf_cell */
 
-#define ZF_DICT_SIZE 512 
+#define ZF_DICT_SIZE 2048 
 #define ZF_DSTACK_SIZE 8
 #define ZF_RSTACK_SIZE 8
 

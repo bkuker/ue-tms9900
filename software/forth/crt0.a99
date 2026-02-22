@@ -4,3 +4,9 @@ _start:
         BL @main
 hang:
         JMP hang
+
+        .section .rodata
+        .global coreZF
+coreZF:
+        .incbin "core.zf"
+        .byte 0

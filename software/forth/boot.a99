@@ -6,10 +6,10 @@ TMRRST  EQU >F0F0
 
 ;*************************************************
 ;                       Stacks
-T0_SP   EQU >4000 - >512
-T1_SP   EQU >4000 - >1024
+T0_SP   EQU >4000 - >130
+T1_SP   EQU >3400
 
-        DORG >3500
+        DORG >4000 - 128
 ;*************************************************
 ;                       Task Workspaces
 T0_WP   BSS 32
@@ -49,9 +49,6 @@ TIMERV  AORG TMRIRQ * 4                 ; Timer Vector
 ;        DATA OSWP
 ;        DATA ISR_MUX_1
 
-
-
-        AORG >0100
 
 ;*************************************************
 ;                       TCB Initialization
