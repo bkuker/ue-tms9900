@@ -29,6 +29,7 @@ async function main(): Promise<void> {
     process.stdin.setEncoding('utf8');
     process.stdin.on("data", (key: string) => {
         if (key === "\u0003") {
+            console.log("PC:", ue.cpu.getPc().toString(16));
             process.exit(); // Ctrl+C
         } else {
             for (let c of key) {
@@ -36,7 +37,8 @@ async function main(): Promise<void> {
             }
         }
     });
-    ue.mux0.setTerminalByteConsumer(b => process.stdout.write(String.fromCharCode(b)));
+    ue.mux0.setTerminalByteConsumer(b => process.stdout.write(`\x1b[32m${String.fromCharCode(b)}\x1b[0m`));
+    ue.mux1.setTerminalByteConsumer(b => process.stdout.write(`\x1b[33m${String.fromCharCode(b)}\x1b[0m`));
 
     ue.cpu.reset();
 
