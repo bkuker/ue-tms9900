@@ -1,3 +1,4 @@
+MUX0    EQU >F000
 M0STAT  EQU >F000                       ;  Read status: bit 0 = Transmit Busy, bit 1 = Data Received
 M0RX    EQU >F002                       ;  Read byte received in 8 LSB
 M0RXB   EQU >F003                       ;  Read byte received
@@ -7,6 +8,7 @@ M0RST   EQU >F006                       ;  Write to reset interrupt and Data Rec
 M0IRQ   EQU >3                          ;  IRQ for Mux0
 
                                         ; Mux1 constants
+MUX1    EQU >F00A
 M1STAT  EQU >F00A
 M1RX    EQU >F00C
 M1RXB   EQU >F00D

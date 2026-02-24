@@ -1,6 +1,6 @@
 #include "zforth.h"
 
-#define yield //__asm__("BLWP @>4")
+#define yield __asm__("BLWP @>4")
 
 extern char coreZF[];
 
@@ -27,8 +27,6 @@ static void puts(unsigned short *mux, const char *s)
 {
     while (*s)
         putchar(mux, *s++);
-    putchar(mux, '\r');
-    putchar(mux, '\n');
 }
 
 // Writes to buffer starting at endPos, returns pointer to start
@@ -51,7 +49,8 @@ char* itoa_small(int val, char* buf, int endPos) {
 zf_input_state zf_host_sys(zf_ctx *ctx, zf_syscall_id id, const char *input)
 {
 	char buf[16];
-
+	zf_cell len;
+	zf_cell addr;
 	switch((int)id) {
 
 		case ZF_SYSCALL_EMIT:
@@ -60,6 +59,15 @@ zf_input_state zf_host_sys(zf_ctx *ctx, zf_syscall_id id, const char *input)
 
 		case ZF_SYSCALL_PRINT:
 			puts(ctx->mux, itoa_small(zf_pop(ctx), buf, 15));
+			putchar(ctx->mux, ' ');
+			break;
+
+		case ZF_SYSCALL_TELL:
+			len = zf_pop(ctx);
+			addr = zf_pop(ctx);
+			while ( len-- ){
+				putchar(ctx->mux, *(ctx->dict + addr++) );
+			}
 			break;
 	}
 
@@ -86,6 +94,14 @@ zf_cell zf_host_parse_num(zf_ctx *ctx, const char *buf)
 }
 
 
+static char* e = "okieomdudoruronwcoisdziuex";
+void printErrorCode(zf_ctx *ctx, zf_result r){
+	putchar(ctx->mux, 'E');
+	putchar(ctx->mux, *(e + r*2) );
+	putchar(ctx->mux, *(1 + e + r*2) );
+}
+
+
 void main(unsigned short *mux){
     char buf[16];
 	zf_ctx _ctx;
@@ -104,13 +120,10 @@ void main(unsigned short *mux){
 
 	zf_result r = zf_eval(ctx, coreZF);
 
-	if(r == ZF_OK){
-		putchar(mux, 'r');
-	} else {
-		puts(ctx->mux, itoa_small(r, buf, 15));
-	}
+	if(r != ZF_OK)
+		printErrorCode(ctx, r);
 
-	puts(mux, "th.");
+	puts(mux, "rth.\r\n");
 	/* Main loop: read words and eval */
 
 	uint8_t l = 0;
@@ -122,7 +135,8 @@ void main(unsigned short *mux){
 			putchar(mux, 10);
 		if(c == 10 || c == 13 || c == 32) {
 			zf_result r = zf_eval(ctx, buf);
-			if(r != ZF_OK) puts(mux, "A");
+			if(r != ZF_OK)
+				printErrorCode(ctx, r);
 			l = 0;
 		} else if(l < sizeof(buf)-1) {
 			buf[l++] = c;
