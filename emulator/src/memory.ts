@@ -14,26 +14,26 @@ export interface MemoryMapped {
 export class RAM implements MemoryMapped {
     private size;
     private baseAddr: number;
-    ram: Uint8Array;
+    data: Uint8Array;
 
     constructor(baseAddr: number, size: number) {
         this.baseAddr = baseAddr;
-        this.ram = new Uint8Array(size);
+        this.data = new Uint8Array(size);
         this.size = size;
     }
 
     readWord(addr: number, cpu: CPU | null): number {
         cpu?.addCycles(4);
         const offset = addr - this.baseAddr;
-        return (this.ram[offset] << 8) | this.ram[offset + 1];
+        return (this.data[offset] << 8) | this.data[offset + 1];
     }
 
     writeWord(addr: number, w: number, cpu: CPU) {
         //console.log(`Write to 0x${addr.toString(16)}: 0x${w.toString(16)}`);
         cpu.addCycles(4); //Probably a TI99 thing, ram behind video processor
         const offset = addr - this.baseAddr;
-        this.ram[offset] = w >> 8;
-        this.ram[offset + 1] = w & 0xFF;
+        this.data[offset] = w >> 8;
+        this.data[offset + 1] = w & 0xFF;
     }
 
     public getBaseAddress() {
@@ -48,7 +48,7 @@ export class RAM implements MemoryMapped {
 export class ROM extends RAM {
     constructor(baseAddr: number, size: number, romData: Uint8Array) {
         super(baseAddr, size);
-        this.ram.set(romData);
+        this.data.set(romData);
     }
 
     writeWord(addr: number, w: number, cpu: CPU) {
