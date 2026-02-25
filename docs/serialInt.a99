@@ -1,0 +1,168 @@
+        COPY "../../software/mux.a99"
+        COPY "../../software/addrs.a99"
+
+TMRIRQ  EQU >1                          ; Timer IRQ
+TMRRST  EQU >F0F0
+
+
+;*************************************************
+;                       Scheduler RAM
+
+        DORG >1000                      ; RAM start
+OSWP    BSS 32                          ; Set aside 32 bytes/16 words for primary workspace
+
+TCBS                                    ; Start of TCB Table
+        BSS 6                           ; WP,PC,ST
+        BSS 6
+TCBE                                    ; End of TCB Table
+
+TCUR    BSS 2                           ; Pointer to TCB for current task
+
+M0TXP   BSS 2                           ;Mux 0 TX Pointer
+M0RXD   BSS 2                           ;Mux 0 RX Byte
+M1TXP   BSS 2                           ;Mux 1 TX Pointer
+M1RXD   BSS 2                           ;Mux 1 RX Byte
+
+;*************************************************
+;                       ROM Start
+        AORG >0000                      ; Reset Vector...
+        DATA OSWP                       ;       OS workspace addr
+        DATA INIT                       ;       Init code
+
+TIMERV  AORG TMRIRQ * 4                 ; Timer Vector
+        DATA OSWP                       ;       OS Workspace
+        DATA TIMERISR                   ;       Scheduler code
+
+M0IRQV  AORG M0IRQ * 4
+        DATA OSWP
+        DATA MUX0ISR
+
+M1IRQV  AORG M1IRQ * 4
+        DATA OSWP
+        DATA MUX1ISR
+
+        AORG >0100
+INITDATA                                ; Initial Ram Values
+        DATA T1RAM, TOP1, >0008         ; Task 1 TCB
+        DATA T2RAM, TOP2, >0008         ; Task 2 TCB
+INITEND
+
+INIT
+        LI R0, INITDATA                 ; Copy TCBs from ROM to RAM
+        LI R1, TCBS
+        LI R2, (INITEND-INITDATA)/2
+COPYD   MOV *R0+, *R1+
+        DEC R2
+        JNE COPYD
+
+                                        ; Load and run Task 1
+        LI R1, TCBS                     ; Set the first task as the "next" to run
+        JMP RES                         ; Jump straight to resume it!
+
+
+TIMERISR
+        LIMI 0                          ; INT OFF
+        CLR @TMRRST                     ; MMIO Write to clear timer interrupt
+
+        MOV @TCUR, R0                   ;Load current TCB address to R0
+        MOV R0, R1                      ;Copy to R1...
+        AI R1, >6                       ;and increment to next TCB
+
+                                        ;Loop back around to the first task
+        CI R1, TCBE                     ;If next task is NOT past the end of the TCB Table
+        JNE SWAP                        ;THEN goto SWAP
+        LI R1, TCBS                     ;ELSE set it to the first one
+SWAP
+
+SUS                                     ;Suspend task to TCB in R0
+        MOV R13, *R0+                   ; Save context to TCB
+        MOV R14, *R0+
+        MOV R15, *R0+
+RES                                     ;Resume task from TCB in R1
+        MOV R1, @TCUR                   ; Save as current task
+        MOV *R1+, R13                   ; Restore context from TCB
+        MOV *R1+, R14
+        MOV *R1+, R15
+        RTWP
+
+MUX0ISR
+        LIMI 0
+        LI R4, M0TXP
+        LI R1, M0STAT
+        JMP MUXTX
+
+MUX1ISR
+        LIMI 0
+        LI R4, M1TXP
+        LI R1, M1STAT
+
+MUXTX
+        MOV *R1, R3                     ;Load mux status
+        CLR @6(R1)                      ;Clear IRQ      //TODO Dont clear till after read?
+        MOV R3, R2
+        ANDI R2, >0001                  ;Transmit busy?
+        JNE MUXRX                       ;If so go to RX
+                                        ;Ready to transmit
+        MOV *R4, R2                     ;Load TX Pointer
+        JEQ MUXRX                       ;Nothing to transmit? goto RX
+        MOVB *R2+, R5                   ;Load transmit data and increment pointer
+        JEQ DONE                        ;Null? done!
+        MOVB R5, @5(R1)                 ;Transmit
+        MOV R2, *R4                     ;Store incremented poiter
+        JMP MUXRX
+DONE
+        CLR *R4                         ;Clear transmit pointer
+MUXRX
+        MOV R3, R2
+        ANDI R2, >0002                  ;Byte received ??
+        JEQ RET
+        MOV @2(R1), @2(R4)
+RET     RTWP
+
+
+;*************************************************
+;                       Task 1
+        DORG >2000
+T1RAM   BSS 32                          ;Workspace
+        AORG >0200
+TOP1    LI R2, STR1                     ; Store the text address in R1
+        MOV R2, @M0TXP
+        BLWP @M0IRQV                    ; trigger transmit
+        MOV R0, R0
+LOOP1                                   ;Wait for tx to complete
+        BLWP @TIMERV                    ; yield
+        MOV @M0TXP, R2                  ;Load data pointer
+        JNE LOOP1                       ;if not zero yet keep waiting
+        JMP TOP1
+STR1    TEXT "HELLORLD!"
+        BYTE 13, 10, 0
+
+;*************************************************
+;                       Task 2
+        DORG >3000
+T2RAM   BSS 32                          ;Workspace
+T2BUF   BSS 2
+        AORG >0300
+TOP2    LI R2, STR2                     ; Store the text address in R1
+        MOV R2, @M1TXP
+        BLWP @M1IRQV                    ; trigger transmit
+
+LOOP2                                   ;Wait for RX Byte
+        BLWP @TIMERV                    ; yield
+        MOV @M1RXD, R9                  ; Load RX Byte
+        JEQ LOOP2                       ; If zero loop
+
+        CLR @T2BUF                      ; Clear transmit buf
+        MOVB @M1RXD+1, @T2BUF           ; Move rx byte into transmit buf
+                                        ; Note second byte of word is the null
+        CLR @M1RXD                      ; Clear receive byte
+
+        LI R2, T2BUF                    ; Store the text address in R1
+        MOV R2, @M1TXP
+        BLWP @M1IRQV                    ; trigger transmit
+        JMP LOOP2                       ; Start over
+
+STR2    TEXT "Hello Packed String, Hello Interupt IO, this terminal echos..."
+        BYTE 13, 10, 0
+
+        END

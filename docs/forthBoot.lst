@@ -1,0 +1,2147 @@
+XAS99 CROSS-ASSEMBLER   VERSION 3.6.5
+     **** ****     > boot.a99
+0001                       COPY "../mux.a99"
+     **** ****     > ../mux.a99
+0001      F000     MUX0    EQU >F000
+0002      F000     M0STAT  EQU >F000                       ;  Read status: bit 0 = Transmit Busy, bit 1 = Data Received
+0003      F002     M0RX    EQU >F002                       ;  Read byte received in 8 LSB
+0004      F003     M0RXB   EQU >F003                       ;  Read byte received
+0005      F004     M0TX    EQU >F004                       ;  Write byte to send in 8 LSB
+0006      F005     M0TXB   EQU >F005                       ;  Write byte to send
+0007      F006     M0RST   EQU >F006                       ;  Write to reset interrupt and Data Received status
+0008      0003     M0IRQ   EQU >3                          ;  IRQ for Mux0
+0009               
+0010                                                       ; Mux1 constants
+0011      F00A     MUX1    EQU >F00A
+0012      F00A     M1STAT  EQU >F00A
+0013      F00C     M1RX    EQU >F00C
+0014      F00D     M1RXB   EQU >F00D
+0015      F00E     M1TX    EQU >F00E
+0016      F00F     M1TXB   EQU >F00F
+0017      F010     M1RST   EQU >F010
+0018      0004     M1IRQ   EQU >4
+                   < boot.a99
+0002                       COPY "../addrs.a99"
+     **** ****     > ../addrs.a99
+0001      0000     VECTORS EQU >0000
+0002      0040     TRAPS   EQU >0040
+0003      0080     GENERAL EQU >0080
+0004      1000     RAM_START EQU >1000
+0005      3FFE     RAM_END EQU >3FFE
+                   < boot.a99
+0003               
+0004      0001     TMRIRQ  EQU >1                          ; Timer IRQ
+0005      F0F0     TMRRST  EQU >F0F0
+0006               
+0007               ;*************************************************
+0008               ;                       Stacks
+0009      3ED0     T0_SP   EQU >4000 - >130
+0010      3410     T1_SP   EQU >3410
+0011               
+0012                       DORG >4000 - 128
+0013               ;*************************************************
+0014               ;                       Task Workspaces
+0015 3F80          T0_WP   BSS 32
+0016 3FA0          T1_WP   BSS 32
+0017               
+0018               ;*************************************************
+0019               ;                       Scheduler RAM
+0020 3FC0          OSWP    BSS 32                          ; Set aside 32 bytes/16 words for primary workspace
+0021               
+0022               TCBS                                    ; Start of TCB Table
+0023 3FE0                  BSS 6                           ; WP,PC,ST
+0024 3FE6                  BSS 6
+0025               TCBE                                    ; End of TCB Table
+0026               
+0027 3FEC          TCUR    BSS 2                           ; Pointer to TCB for current task
+0028               
+0029 3FEE          M0TXP   BSS 2                           ;Mux 0 TX Pointer
+0030 3FF0          M0RXD   BSS 2                           ;Mux 0 RX Byte
+0031 3FF2          M1TXP   BSS 2                           ;Mux 1 TX Pointer
+0032 3FF4          M1RXD   BSS 2                           ;Mux 1 RX Byte
+0033               
+0034               ;*************************************************
+0035               ;                       ROM Start
+0036                       AORG >0000                      ; Reset Vector...
+0037 0000 3FC0             DATA OSWP                       ;       OS workspace addr
+0038 0002 007A             DATA UNZIP                      ;       Init code
+0039               
+0040               TIMERV  AORG TMRIRQ * 4                 ; Timer Vector
+0041 0004 3FC0             DATA OSWP                       ;       OS Workspace
+0042 0006 004C             DATA ISR_TIMER                  ;       Scheduler code
+0043               
+0044               ;M0IRQV  AORG M0IRQ * 4
+0045               ;        DATA OSWP
+0046               ;        DATA ISR_MUX_0
+0047               
+0048               ;M1IRQV  AORG M1IRQ * 4
+0049               ;        DATA OSWP
+0050               ;        DATA ISR_MUX_1
+0051               
+0052               
+0053               ;*************************************************
+0054               ;                       TCB Initialization
+0055               TCB_INIT_DATA                           ; Initial Ram Values
+0056 0008 3F80             DATA T0_WP, UNZIP_DATA, >0001   ; Task 0 TCB //TODO FIX INT MASK!!!
+     000A 1000     
+     000C 0001     
+0057 000E 3FA0             DATA T1_WP, UNZIP_DATA, >0001   ; Task 1 TCB
+     0010 1000     
+     0012 0001     
+0058               TCB_INIT_DATA_END
+0059               
+0060               TCB_INIT
+0061 0014 0200  12         LI R0, TCB_INIT_DATA            ; Copy TCBs from ROM to RAM
+     0016 0008     
+0062 0018 0201  12         LI R1, TCBS
+     001A 3FE0     
+0063 001C 0202  12         LI R2, (TCB_INIT_DATA_END-TCB_INIT_DATA)/2
+     001E 0006     
+0064               TCB_INIT_COPY
+0065 0020 CC70  42         MOV *R0+, *R1+
+0066 0022 0602  10         DEC R2
+0067 0024 16FD  10         JNE TCB_INIT_COPY
+0068               
+0069               INIT_STACKS
+0070 0026 0201  12         LI R1, MUX0
+     0028 F000     
+0071 002A C801  30         MOV R1, @T0_WP + (1 * 2)
+     002C 3F82     
+0072 002E 0201  12         LI R1, T0_SP
+     0030 3ED0     
+0073 0032 C801  30         MOV R1, @T0_WP + (10 * 2)
+     0034 3F94     
+0074               
+0075 0036 0201  12         LI R1, MUX1
+     0038 F00A     
+0076 003A C801  30         MOV R1, @T1_WP + (1 * 2)
+     003C 3FA2     
+0077 003E 0201  12         LI R1, T1_SP
+     0040 3410     
+0078 0042 C801  30         MOV R1, @T1_WP + (10 * 2)
+     0044 3FB4     
+0079                       ;B @UNZIP_DATA
+0080               
+0081                                                       ; Load and run Task 1
+0082 0046 0201  12         LI R1, TCBS                     ; Set the first task as the "next" to run
+     0048 3FE0     
+0083 004A 1011  10         JMP ISR_TIMER_RESUME            ; Jump straight to resume it!
+0084               
+0085               ;*************************************************
+0086               ;                       Scheduler
+0087               ISR_TIMER
+0088 004C 0300  14         LIMI 0                          ; INT OFF
+     004E 0000     
+0089 0050 04E0  26         CLR @TMRRST                     ; MMIO Write to clear timer interrupt
+     0052 F0F0     
+0090               
+0091 0054 C020  26         MOV @TCUR, R0                   ;Load current TCB address to R0
+     0056 3FEC     
+0092 0058 C040  14         MOV R0, R1                      ;Copy to R1...
+0093 005A 0221  14         AI R1, >6                       ;and increment to next TCB
+     005C 0006     
+0094               
+0095                                                       ;Loop back around to the first task
+0096 005E 0281  14         CI R1, TCBE                     ;If next task is NOT past the end of the TCB Table
+     0060 3FEC     
+0097 0062 1602  10         JNE ISR_TIMER_SWAP              ;THEN goto SWAP
+0098 0064 0201  12         LI R1, TCBS                     ;ELSE set it to the first one
+     0066 3FE0     
+0099               ISR_TIMER_SWAP
+0100               
+0101               ISR_TIMER_SUSPEND                       ;Suspend task to TCB in R0
+0102 0068 CC0D  30         MOV R13, *R0+                   ; Save context to TCB
+0103 006A CC0E  30         MOV R14, *R0+
+0104 006C CC0F  30         MOV R15, *R0+
+0105               ISR_TIMER_RESUME                        ;Resume task from TCB in R1
+0106 006E C801  30         MOV R1, @TCUR                   ; Save as current task
+     0070 3FEC     
+0107 0072 C371  26         MOV *R1+, R13                   ; Restore context from TCB
+0108 0074 C3B1  26         MOV *R1+, R14
+0109 0076 C3F1  26         MOV *R1+, R15
+0110 0078 0380  14         RTWP
+0111               
+0112               
+0113               ;*************************************************
+0114               ;                       Decompress
+0115               UNZIP                                   ;Uncompress
+0116 007A 0200  12         LI R0, UNZIP_COMPRESSED_DATA    ;Input data in rom
+     007C 0136     
+0117 007E 0201  12         LI R1, UNZIP_DATA               ;output in ram
+     0080 1000     
+0118 0082 06A0  20         BL @DZX0                        ;Call
+     0084 0088     
+0119 0086 10C6  10         JMP TCB_INIT
+0120               
+0121                       COPY "../zx0/dzx0.a99"
+     **** ****     > ../zx0/dzx0.a99
+0001               ; -----------------------------------------------------------------------------
+0002               ; ZX0 decoder for TMS9900
+0003               ; Based on Z80 "Standard" version by Einar Saukas & Urusergi
+0004               ; Ported for TMS9900 architecture
+0005               ; -----------------------------------------------------------------------------
+0006               ; Usage:
+0007               ;   LI   R0,COMPRESSED_ADDR     ; Source address (compressed data in ROM)
+0008               ;   LI   R1,DEST_ADDR           ; Destination address (RAM)
+0009               ;   BL   @DZX0
+0010               ;   ; On return: R1 points to byte after last decompressed byte
+0011               ; -----------------------------------------------------------------------------
+0012               ; Register usage:
+0013               ;   R0:  Input Pointer
+0014               ;   R1:  Output Pointer
+0015               ;   R2:  Bit value (current byte being read bit-by-bit)
+0016               ;   R3:  Bit mask (0x8000, 0x4000, ... 0x0100, then refill)
+0017               ;   R4:  Backtrack
+0018               ;   R5:  Last Byte
+0019               ;   R6: last_offset
+0020               ;   R7: length
+0021               ;   R8: i
+0022               ;   R9 Elias return
+0023               ;   R12: 1 for inverted elias, 0 for normal
+0024               ;   R15: Read bit return
+0025               ; Scratch R15, R14, R13
+0026               ; -----------------------------------------------------------------------------
+0027               
+0028                                                       ; Uses R13 as scratch
+0029               DZX0
+0030 0088 C34B  14         MOV R11, R13
+0031 008A 0206  12         LI R6, >1                       ;last_offset = INITIAL_OFFSET = 1
+     008C 0001     
+0032 008E 0203  12         LI R3, >0080                    ;bit mask = 0
+     0090 0080     
+0033 0092 04C4  10         CLR R4                          ;backtrack = 0
+0034 0094 04CC  10         CLR R12
+0035               COPY_LITERALS:
+0036 0096 06A0  20         BL @ELIAS
+     0098 011C     
+0037               LIT_LOOP:
+0038 009A DC70  38         MOVB *R0+, *R1+                 ; *output_ptr++ = *input_ptr++
+0039 009C 0609  10         DEC R9
+0040 009E 16FD  10         JNE LIT_LOOP
+0041               
+0042 00A0 06A0  20         BL @READBIT                     ;if (read_bit())
+     00A2 00F4     
+0043 00A4 1607  10         JNE NEW_OFFSET                  ;       goto COPY_FROM_NEW_OFFSET;
+0044               
+0045                                                       ;Uses R15 as scratch
+0046               LAST_OFFSET:
+0047 00A6 06A0  20         BL @ELIAS
+     00A8 011C     
+0048               
+0049 00AA 06A0  20         BL @WRITE_OFFSET
+     00AC 00E8     
+0050               
+0051 00AE 06A0  20         BL @READBIT                     ;if (!read_bit())
+     00B0 00F4     
+0052 00B2 13F1  10         JEQ COPY_LITERALS               ;       goto COPY_LITERALS;
+0053               
+0054                                                       ;Uses R15 as scratch
+0055               NEW_OFFSET
+0056 00B4 058C  10         INC R12                         ;Inverted!
+0057 00B6 06A0  20         BL @ELIAS
+     00B8 011C     
+0058 00BA 04CC  10         CLR R12
+0059               
+0060 00BC 0289  14         CI R9, >0100                    ; Done condition
+     00BE 0100     
+0061 00C0 1312  10         JEQ DZX_DONE
+0062               
+0063 00C2 C189  14         MOV R9, R6                      ;last_offset = read_interlaced_elias_gamma(1);
+0064 00C4 D170  24         MOVB *R0+, R5                   ;last_byte = *input_ptr++;
+0065               
+0066                                                       ;last_offset = last_offset * 128 - (last_byte >> 1);
+0067 00C6 0A76  26         SLA R6, 7                       ;last_offset = last_offset * 128
+0068 00C8 C3C5  14         MOV R5, R15                     ; R15 = last_byte
+0069 00CA 06CF  10         SWPB R15
+0070 00CC 091F  14         SRL R15, 1                      ; R15 = last_byte >> 1
+0071 00CE 618F  14         S R15, R6                       ;last_offset = last_offset * 128 - (last_byte >> 1);
+0072               
+0073 00D0 0204  12         LI R4, 1                        ;backtrack = 1
+     00D2 0001     
+0074               
+0075 00D4 06A0  20         BL @ELIAS
+     00D6 011C     
+0076 00D8 0589  10         INC R9                          ; R9 length = read_interlaced_elias_gamma(0) + 1;
+0077 00DA 06A0  20         BL @WRITE_OFFSET
+     00DC 00E8     
+0078               
+0079 00DE 06A0  20         BL @READBIT
+     00E0 00F4     
+0080 00E2 16E8  10         JNE NEW_OFFSET
+0081 00E4 10D8  10         JMP COPY_LITERALS
+0082               DZX_DONE
+0083 00E6 045D  16         B *R13
+0084               
+0085                                                       ;Uses R15 as Scratch & Return Value
+0086               WRITE_OFFSET                            ;Leaf function, no need to store R11
+0087 00E8 C3C1  14         MOV R1, R15                     ; R6 = current output_ptr
+0088 00EA 63C6  14         S R6, R15                       ; R6 = output_ptr - last_offset
+0089               WRITE_OFFSET_LOOP:
+0090 00EC DC7F  38         MOVB *R15+, *R1+                ; *output_ptr++ = *(output_ptr - offset)++
+0091 00EE 0609  10         DEC R9
+0092 00F0 16FD  10         JNE WRITE_OFFSET_LOOP
+0093 00F2 045B  16         B *R11
+0094               
+0095               
+0096                                                       ;Uses R15 as Scratch & Return Value
+0097               READBIT                                 ;Leaf function, no need to store R11
+0098 00F4 C104  14         MOV R4, R4
+0099 00F6 1305  10         JEQ READBIT_NO_BACKTRACK
+0100 00F8 04C4  10         CLR R4
+0101 00FA C3C5  14         MOV R5, R15
+0102 00FC 024F  14         ANDI R15, >0100
+     00FE 0100     
+0103 0100 045B  16         B *R11
+0104               READBIT_NO_BACKTRACK
+0105 0102 0283  14         CI R3, >0080                    ;Has the bit fallen off the high bit?
+     0104 0080     
+0106 0106 1603  10         JNE READBIT_HAVE_BYTE           ; if not there are still bits left to read
+0107 0108 D0B0  24         MOVB *R0+, R2                   ;read the new byte
+0108 010A 0203  12         LI R3, >8000                    ;reset the bit mask
+     010C 8000     
+0109               READBIT_HAVE_BYTE
+0110 010E 04CF  10         CLR R15                         ;Prepare to return zero
+0111 0110 2083  14         COC R3, R2                      ;Check byte vs mask
+0112 0112 1601  10         JNE READBIT_ZERO                ;Jump to zero return
+0113 0114 058F  10         INC R15                         ;Change return to one
+0114               READBIT_ZERO
+0115 0116 0913  14         SRL R3, 1                       ;Shift mask
+0116 0118 C3CF  14         MOV R15, R15                    ;Reload return value so callers can just use EQ status bit
+0117 011A 045B  16         B *R11
+0118               
+0119                                                       ;Uses R14 as scratch
+0120                                                       ;Retrns in R9
+0121               ELIAS
+0122 011C C38B  14         MOV R11, R14                    ; Save return address
+0123 011E 0209  12         LI R9, 1                        ; value = 1
+     0120 0001     
+0124               ELIAS_LOOP
+0125 0122 06A0  20         BL @READBIT                     ; Read data bit
+     0124 00F4     
+0126 0126 1606  10         JNE ELIAS_DONE                  ; If bit=1, done
+0127                                                       ; Data bit was 0, continue
+0128 0128 0A19  14         SLA R9, 1                       ; value <<= 1
+0129 012A 06A0  20         BL @READBIT                     ; Read value bit
+     012C 00F4     
+0130 012E 2BCC  14         XOR R12, R15                    ; possibly invert the one bit
+0131 0130 A24F  14         A R15, R9                       ; R15 is 1 or zero, add it
+0132 0132 10F7  10         JMP ELIAS_LOOP
+0133               ELIAS_DONE
+0134 0134 045E  16         B *R14
+                   < boot.a99
+0122               
+0123               UNZIP_COMPRESSED_DATA
+0124 0136 0539             BCOPY "forth.romz"
+     0138 06A0     
+     013A 1108     
+     013C 10FF     
+     013E 302D     
+     0140 064A     
+     0142 C68E     
+     0144 C202     
+     0146 A203     
+     0148 04C4     
+     014A D604     
+     014C 0603     
+     014E C001     
+     0150 1605     
+     0152 C042     
+     0154 A043     
+     0156 D460     
+     0158 1006     
+     015A 102E     
+     015C 04CE     
+     015E E106     
+     0160 1504     
+     0162 1303     
+     0164 020E     
+     0166 0001     
+     0168 0501     
+     016A 0207     
+     016C 000A     
+     016E 1017     
+     0170 C101     
+     0172 0744     
+     0174 C184     
+     0176 0705     
+     0178 1191     
+     017A BB04     
+     017C C53D     
+     017E 47C1     
+     0180 4602     
+     0182 2500     
+     0184 3006     
+     0186 C5D6     
+     0188 8928     
+     018A 9EE5     
+     018C 4407     
+     018E 04D0     
+     0190 AEC4     
+     0192 C3E4     
+     0194 41F1     
+     0196 E805     
+     0198 04C0     
+     019A 4406     
+     019C 087C     
+     019E 3DE6     
+     01A0 C00E     
+     01A2 1354     
+     01A4 BA07     
+     01A6 380A     
+     01A8 4305     
+     01AA 81A0     
+     01AC 02C3     
+     01AE BA04     
+     01B0 5BC1     
+     01B2 2108     
+     01B4 AAE0     
+     01B6 D9E7     
+     01B8 9004     
+     01BA 2000     
+     01BC A9D4     
+     01BE 0243     
+     01C0 8E35     
+     01C2 1302     
+     01C4 E098     
+     01C6 8C02     
+     01C8 2481     
+     01CA 3C02     
+     01CC 0300     
+     01CE 45C5     
+     01D0 03C1     
+     01D2 6014     
+     01D4 40A0     
+     01D6 82C0     
+     01D8 C5A0     
+     01DA C2D1     
+     01DC 93A4     
+     01DE A5BE     
+     01E0 68BA     
+     01E2 2089     
+     01E4 D0C6     
+     01E6 0883     
+     01E8 2BA0     
+     01EA 85D0     
+     01EC E200     
+     01EE 01A1     
+     01F0 8AB0     
+     01F2 E61A     
+     01F4 52A5     
+     01F6 41AA     
+     01F8 E222     
+     01FA 6A43     
+     01FC 7981     
+     01FE C481     
+     0200 0D39     
+     0202 7274     
+     0204 682E     
+     0206 0D0A     
+     0208 7D12     
+     020A 0E00     
+     020C 022A     
+     020E FFF4     
+     0210 C00A     
+     0212 CC0B     
+     0214 CC09     
+     0216 CC0C     
+     0218 CC0D     
+     021A CC0E     
+     021C C40F     
+     021E 022A     
+     0220 F71E     
+     0222 C381     
+     0224 2211     
+     0226 281A     
+     0228 5E5E     
+     022A E11D     
+     022C 24C3     
+     022E CE02     
+     0230 2FAA     
+     0232 CC01     
+     0234 1C7A     
+     0236 C7C1     
+     0238 0202     
+     023A 8AD9     
+     023C C04A     
+     023E B221     
+     0240 AF5E     
+     0242 A014     
+     0244 F2CA     
+     0246 8E08     
+     0248 BA9C     
+     024A A55A     
+     024C 6E56     
+     024E A8A3     
+     0250 46D8     
+     0252 B0EA     
+     0254 18FA     
+     0256 B87E     
+     0258 569A     
+     025A 7A6F     
+     025C 22C3     
+     025E 0AA3     
+     0260 2C8A     
+     0262 5523     
+     0264 5AEA     
+     0266 4C5D     
+     0268 2033     
+     026A C081     
+     026C 11E3     
+     026E EC10     
+     0270 848E     
+     0272 C110     
+     0274 FE90     
+     0276 A1C8     
+     0278 AADE     
+     027A 435B     
+     027C B224     
+     027E 757E     
+     0280 0882     
+     0282 C7C2     
+     0284 D091     
+     0286 16F5     
+     0288 C04E     
+     028A 05C1     
+     028C CAE5     
+     028E C9FA     
+     0290 21BD     
+     0292 F0F2     
+     0294 E068     
+     0296 E309     
+     0298 7502     
+     029A 0DE2     
+     029C 8198     
+     029E A702     
+     02A0 0BC0     
+     02A2 6A83     
+     02A4 BDC1     
+     02A6 1106     
+     02A8 C4A0     
+     02AA F0B3     
+     02AC E004     
+     02AE D1D0     
+     02B0 9D88     
+     02B2 5512     
+     02B4 1436     
+     02B6 D4A0     
+     02B8 EAA2     
+     02BA C187     
+     02BC 459C     
+     02BE D110     
+     02C0 D044     
+     02C2 DAAD     
+     02C4 34AE     
+     02C6 830D     
+     02C8 E02D     
+     02CA 4C88     
+     02CC 8D12     
+     02CE 386A     
+     02D0 9E92     
+     02D2 4226     
+     02D4 1234     
+     02D6 8D0A     
+     02D8 FD4F     
+     02DA B5F1     
+     02DC E8A5     
+     02DE F476     
+     02E0 2016     
+     02E2 09C0     
+     02E4 8A94     
+     02E6 B699     
+     02E8 84A6     
+     02EA 025E     
+     02EC 9D04     
+     02EE C210     
+     02F0 0A98     
+     02F2 0217     
+     02F4 171B     
+     02F6 07D0     
+     02F8 C209     
+     02FA 83A0     
+     02FC CAD4     
+     02FE C4D0     
+     0300 628D     
+     0302 05B0     
+     0304 E7E4     
+     0306 8F1F     
+     0308 D4C1     
+     030A 089D     
+     030C D009     
+     030E 2D64     
+     0310 F021     
+     0312 3AFF     
+     0314 FCC1     
+     0316 01C3     
+     0318 C298     
+     031A 1212     
+     031C 8E44     
+     031E EA09     
+     0320 1510     
+     0322 1205     
+     0324 8F07     
+     0326 0904     
+     0328 CE02     
+     032A 0315     
+     032C 68B8     
+     032E 196D     
+     0330 8E12     
+     0332 8C45     
+     0334 0D12     
+     0336 8D12     
+     0338 0A6A     
+     033A E407     
+     033C 9E44     
+     033E CA83     
+     0340 7374     
+     0342 C684     
+     0344 069E     
+     0346 AD1A     
+     0348 C0EA     
+     034A 5F0A     
+     034C C08E     
+     034E A08E     
+     0350 E63E     
+     0352 F9D3     
+     0354 BF08     
+     0356 8076     
+     0358 022E     
+     035A FFD0     
+     035C A382     
+     035E D09F     
+     0360 16E5     
+     0362 04CC     
+     0364 C34C     
+     0366 C30E     
+     0368 3BB1     
+     036A F24D     
+     036C 41A5     
+     036E 0AC2     
+     0370 FAC2     
+     0372 7A3A     
+     0374 3AC3     
+     0376 F9BA     
+     0378 D6C9     
+     037A DA5B     
+     037C F886     
+     037E F8F2     
+     0380 0C00     
+     0382 D2F0     
+     0384 F136     
+     0386 0282     
+     0388 2598     
+     038A 16EA     
+     038C 136E     
+     038E EC02     
+     0390 19DE     
+     0392 CAC0     
+     0394 0200     
+     0396 3514     
+     0398 148A     
+     039A B11A     
+     039C B0D3     
+     039E EE24     
+     03A0 8813     
+     03A2 546A     
+     03A4 9392     
+     03A6 422A     
+     03A8 1350     
+     03AA 2322     
+     03AC 06C1     
+     03AE 6FC1     
+     03B0 AC71     
+     03B2 AC5C     
+     03B4 0FE2     
+     03B6 C599     
+     03B8 1008     
+     03BA 08C3     
+     03BC C143     
+     03BE 8DEA     
+     03C0 BD8C     
+     03C2 A056     
+     03C4 D68A     
+     03C6 5086     
+     03C8 84C5     
+     03CA 44D1     
+     03CC 116C     
+     03CE AE78     
+     03D0 6C94     
+     03D2 13B0     
+     03D4 8813     
+     03D6 AC33     
+     03D8 0931     
+     03DA 25F8     
+     03DC 6D48     
+     03DE 8802     
+     03E0 0C2B     
+     03E2 069C     
+     03E4 C3C1     
+     03E6 4ECE     
+     03E8 F511     
+     03EA C8B7     
+     03EC 6019     
+     03EE A7D0     
+     03F0 08D1     
+     03F2 1272     
+     03F4 C886     
+     03F6 F0A9     
+     03F8 5341     
+     03FA 68EC     
+     03FC 22D0     
+     03FE 4409     
+     0400 DA05     
+     0402 8206     
+     0404 318F     
+     0406 B8FF     
+     0408 D0B5     
+     040A E2CA     
+     040C E1D8     
+     040E 8C10     
+     0410 C9DD     
+     0412 E095     
+     0414 3B6F     
+     0416 6B69     
+     0418 656F     
+     041A 6D64     
+     041C 7564     
+     041E 6F72     
+     0420 7572     
+     0422 6F6E     
+     0424 7763     
+     0426 6F69     
+     0428 7364     
+     042A 7A69     
+     042C 7565     
+     042E 7800     
+     0430 0014     
+     0432 2429     
+     0434 1057     
+     0436 392A     
+     0438 5912     
+     043A 75FD     
+     043C 6081     
+     043E 7D45     
+     0440 A559     
+     0442 11AD     
+     0444 100F     
+     0446 C1A1     
+     0448 9E8D     
+     044A 95C1     
+     044C 42F4     
+     044E 9D55     
+     0450 0584     
+     0452 4961     
+     0454 A091     
+     0456 4613     
+     0458 2DD0     
+     045A 4609     
+     045C 8109     
+     045E 8560     
+     0460 454A     
+     0462 4503     
+     0464 ABEF     
+     0466 432B     
+     0468 3081     
+     046A 6389     
+     046C 1310     
+     046E AAF4     
+     0470 099A     
+     0472 0D0A     
+     0474 A60A     
+     0476 A90D     
+     0478 07AC     
+     047A 0CBA     
+     047C D9C2     
+     047E F005     
+     0480 AA0B     
+     0482 1602     
+     0484 0202     
+     0486 0001     
+     0488 C042     
+     048A 045B     
+     048C CC40     
+     048E CC42     
+     0490 CC43     
+     0492 CC44     
+     0494 45AA     
+     0496 4647     
+     0498 AA48     
+     049A 49AA     
+     049C 4A4B     
+     049E AA4C     
+     04A0 4DA1     
+     04A2 4E4A     
+     04A4 4F02     
+     04A6 0100     
+     04A8 0004     
+     04AA 5BC3     
+     04AC C1C0     
+     04AE 42C0     
+     04B0 3FC0     
+     04B2 BFC0     
+     04B4 FFC1     
+     04B6 3FC1     
+     04B8 7FC1     
+     04BA AAC1     
+     04BC C2AA     
+     04BE C2C2     
+     04C0 AAC2     
+     04C2 C3AA     
+     04C4 C3C3     
+     04C6 3AC3     
+     04C8 DFB9     
+     04CA C0DA     
+     04CC 1068     
+     04CE 60C8     
+     04D0 4372     
+     04D2 CC04     
+     04D4 E108     
+     04D6 A880     
+     04D8 AA0E     
+     04DA C1B5     
+     04DC E38F     
+     04DE 59C8     
+     04E0 C27F     
+     04E2 AEF0     
+     04E4 06F8     
+     04E6 A608     
+     04E8 9B0A     
+     04EA 0CAD     
+     04EC A402     
+     04EE 2818     
+     04F0 7003     
+     04F2 0800     
+     04F4 C483     
+     04F6 F655     
+     04F8 9598     
+     04FA BB82     
+     04FC BD12     
+     04FE E5DD     
+     0500 95FC     
+     0502 0B10     
+     0504 05A0     
+     0506 82A0     
+     0508 A175     
+     050A CDF0     
+     050C A1D0     
+     050E B609     
+     0510 40A3     
+     0512 0282     
+     0514 C083     
+     0516 D242     
+     0518 40B5     
+     051A 8B22     
+     051C B508     
+     051E 6463     
+     0520 CEFF     
+     0522 1E34     
+     0524 83F6     
+     0526 1D38     
+     0528 F4C5     
+     052A 9E3D     
+     052C C302     
+     052E C3FF     
+     0530 E244     
+     0532 7107     
+     0534 FDAB     
+     0536 0402     
+     0538 F1BB     
+     053A ADD6     
+     053C 4569     
+     053E 0EA0     
+     0540 4CD6     
+     0542 A111     
+     0544 3E05     
+     0546 8CEC     
+     0548 9BD0     
+     054A DAC8     
+     054C 31E5     
+     054E 4C0D     
+     0550 1626     
+     0552 D05A     
+     0554 151F     
+     0556 131E     
+     0558 9859     
+     055A D1AE     
+     055C 7416     
+     055E 118C     
+     0560 98A0     
+     0562 05FE     
+     0564 B594     
+     0566 0EA3     
+     0568 8CD7     
+     056A EEAD     
+     056C EFDB     
+     056E F961     
+     0570 A96A     
+     0572 DC03     
+     0574 B315     
+     0576 0D5A     
+     0578 1433     
+     057A 3F0A     
+     057C 016D     
+     057E DD42     
+     0580 5EAD     
+     0582 D8AA     
+     0584 020B     
+     0586 38EC     
+     0588 AB01     
+     058A 06A9     
+     058C 8C09     
+     058E 36AD     
+     0590 3505     
+     0592 CAC2     
+     0594 11EC     
+     0596 1D59     
+     0598 E408     
+     059A ADF4     
+     059C C3CA     
+     059E B0F5     
+     05A0 04C8     
+     05A2 35B1     
+     05A4 88CA     
+     05A6 84D8     
+     05A8 C161     
+     05AA 39EA     
+     05AC C3E5     
+     05AE 0842     
+     05B0 2C14     
+     05B2 5B61     
+     05B4 4157     
+     05B6 213B     
+     05B8 ACCA     
+     05BA 5D89     
+     05BC 48E1     
+     05BE 5A09     
+     05C0 1576     
+     05C2 102A     
+     05C4 04C4     
+     05C6 C0CA     
+     05C8 05C3     
+     05CA 838F     
+     05CC 6335     
+     05CE A38F     
+     05D0 F5E0     
+     05D2 7ED9     
+     05D4 E432     
+     05D6 C16A     
+     05D8 1528     
+     05DA 0245     
+     05DC 5B1F     
+     05DE 8345     
+     05E0 1616     
+     05E2 A381     
+     05E4 C0CD     
+     05E6 C0AA     
+     05E8 FD7B     
+     05EA CDD5     
+     05EC 9A01     
+     05EE 0414     
+     05F0 52C1     
+     05F2 94AF     
+     05F4 F40A     
+     05F6 E582     
+     05F8 35C4     
+     05FA 4FA3     
+     05FC 8DB8     
+     05FE 2A2D     
+     0600 D8C5     
+     0602 0EA0     
+     0604 81D5     
+     0606 04C3     
+     0608 DAC0     
+     060A 0F16     
+     060C D4C0     
+     060E 4FA9     
+     0610 8C0C     
+     0612 4CD6     
+     0614 502A     
+     0616 C301     
+     0618 C2AD     
+     061A 431B     
+     061C 0984     
+     061E 2BC2     
+     0620 2259     
+     0622 75C8     
+     0624 808F     
+     0626 1A48     
+     0628 7B21     
+     062A 8F08     
+     062C B4CB     
+     062E 4818     
+     0630 7D34     
+     0632 DCB3     
+     0634 0601     
+     0636 8A21     
+     0638 FFFF     
+     063A FFFB     
+     063C E559     
+     063E 5C07     
+     0640 47E4     
+     0642 D335     
+     0644 5DA9     
+     0646 DA05     
+     0648 1C0E     
+     064A 0416     
+     064C 1A02     
+     064E F14B     
+     0650 7F1B     
+     0652 0506     
+     0654 C3D6     
+     0656 7699     
+     0658 C8B8     
+     065A 0EE1     
+     065C A13F     
+     065E FFAF     
+     0660 12C1     
+     0662 0309     
+     0664 8464     
+     0666 2342     
+     0668 353A     
+     066A D684     
+     066C C9DA     
+     066E FCCD     
+     0670 C5A8     
+     0672 BCCA     
+     0674 94AF     
+     0676 16CE     
+     0678 101D     
+     067A 0284     
+     067C 0040     
+     067E 1615     
+     0680 0701     
+     0682 D681     
+     0684 0EE1     
+     0686 F290     
+     0688 DCAA     
+     068A 8C4F     
+     068C B39E     
+     068E 859B     
+     0690 B0A0     
+     0692 2A99     
+     0694 8CF8     
+     0696 82DC     
+     0698 D3A0     
+     069A 4D71     
+     069C 5FC0     
+     069E 59C4     
+     06A0 D1F7     
+     06A2 A8C4     
+     06A4 4BFA     
+     06A6 1319     
+     06A8 5AE8     
+     06AA B48B     
+     06AC CD85     
+     06AE 7D2C     
+     06B0 248B     
+     06B2 44A2     
+     06B4 623C     
+     06B6 AE76     
+     06B8 6EE0     
+     06BA 27DA     
+     06BC 0263     
+     06BE F421     
+     06C0 C998     
+     06C2 C4D7     
+     06C4 1720     
+     06C6 3CF5     
+     06C8 8594     
+     06CA 48BC     
+     06CC FC75     
+     06CE B59D     
+     06D0 C0A1     
+     06D2 5CB5     
+     06D4 C191     
+     06D6 020D     
+     06D8 1483     
+     06DA 59C6     
+     06DC 83CA     
+     06DE 86A7     
+     06E0 649D     
+     06E2 C32E     
+     06E4 8AD9     
+     06E6 C25C     
+     06E8 FE05     
+     06EA 815C     
+     06EC C2E0     
+     06EE 31E0     
+     06F0 8965     
+     06F2 39C6     
+     06F4 8506     
+     06F6 95A0     
+     06F8 49C7     
+     06FA 01C8     
+     06FC EBD0     
+     06FE ECF8     
+     0700 ADD0     
+     0702 93C1     
+     0704 5A79     
+     0706 8190     
+     0708 ABC3     
+     070A C16A     
+     070C 3DCF     
+     070E FD8D     
+     0710 00DF     
+     0712 215D     
+     0714 CD7B     
+     0716 CCC8     
+     0718 5B04     
+     071A D0FD     
+     071C 9004     
+     071E A1FA     
+     0720 D780     
+     0722 B8A1     
+     0724 4D9D     
+     0726 C3DE     
+     0728 B7D9     
+     072A 8F88     
+     072C 83A0     
+     072E 4FC7     
+     0730 81D7     
+     0732 A528     
+     0734 02D4     
+     0736 42F1     
+     0738 A88A     
+     073A F518     
+     073C 92F2     
+     073E AC90     
+     0740 D3CD     
+     0742 10E1     
+     0744 8CE1     
+     0746 34B1     
+     0748 5F34     
+     074A 2CD5     
+     074C D9F4     
+     074E 3702     
+     0750 0F22     
+     0752 A604     
+     0754 CC09     
+     0756 9379     
+     0758 1023     
+     075A 9801     
+     075C 18F8     
+     075E 0204     
+     0760 C69D     
+     0762 D3C9     
+     0764 19D7     
+     0766 F5E1     
+     0768 1308     
+     076A C5AD     
+     076C 8420     
+     076E C671     
+     0770 C127     
+     0772 17FA     
+     0774 4B8C     
+     0776 0748     
+     0778 FBF4     
+     077A C047     
+     077C 79EA     
+     077E B9D1     
+     0780 02A2     
+     0782 BE92     
+     0784 052F     
+     0786 4FB1     
+     0788 3085     
+     078A 6CFD     
+     078C 0561     
+     078E 21E9     
+     0790 C1D0     
+     0792 5F16     
+     0794 DB5C     
+     0796 FF0F     
+     0798 232E     
+     079A 9479     
+     079C CE4D     
+     079E 4CF0     
+     07A0 10A3     
+     07A2 F2D8     
+     07A4 79E7     
+     07A6 8470     
+     07A8 88A1     
+     07AA 18BA     
+     07AC E268     
+     07AE CF99     
+     07B0 90F9     
+     07B2 8C71     
+     07B4 35C1     
+     07B6 1AD0     
+     07B8 1F16     
+     07BA EBCC     
+     07BC 9DBC     
+     07BE 6300     
+     07C0 185A     
+     07C2 1098     
+     07C4 FCB5     
+     07C6 02C6     
+     07C8 9B14     
+     07CA C018     
+     07CC 71C7     
+     07CE 0C16     
+     07D0 4CA1     
+     07D2 05B8     
+     07D4 6EDD     
+     07D6 8888     
+     07D8 21D4     
+     07DA 19B4     
+     07DC 8AD4     
+     07DE 064C     
+     07E0 4E75     
+     07E2 B19C     
+     07E4 024C     
+     07E6 7D6A     
+     07E8 2DC4     
+     07EA 0AA0     
+     07EC 41A0     
+     07EE 4E8F     
+     07F0 515D     
+     07F2 F260     
+     07F4 185D     
+     07F6 3FFC     
+     07F8 5888     
+     07FA 888F     
+     07FC A51A     
+     07FE 7FDC     
+     0800 C358     
+     0802 E8D5     
+     0804 09E1     
+     0806 D160     
+     0808 65AC     
+     080A 60CF     
+     080C A0C3     
+     080E CE4D     
+     0810 4567     
+     0812 C4C4     
+     0814 58A1     
+     0816 0AA1     
+     0818 036A     
+     081A 0A86     
+     081C 5884     
+     081E 04FB     
+     0820 A9D5     
+     0822 6057     
+     0824 C4AB     
+     0826 1782     
+     0828 53DD     
+     082A 7D9D     
+     082C 55C1     
+     082E 0CE8     
+     0830 5D16     
+     0832 1293     
+     0834 AE70     
+     0836 0CA4     
+     0838 0AD1     
+     083A F7C5     
+     083C 7504     
+     083E 0A17     
+     0840 11E9     
+     0842 A0FA     
+     0844 1B02     
+     0846 124C     
+     0848 0402     
+     084A 9D02     
+     084C 428D     
+     084E B1C0     
+     0850 3D81     
+     0852 7DE4     
+     0854 24DD     
+     0856 C4CF     
+     0858 0584     
+     085A C444     
+     085C C8E3     
+     085E 7129     
+     0860 0009     
+     0862 580A     
+     0864 F2AE     
+     0866 4173     
+     0868 5D09     
+     086A 1AB0     
+     086C 0460     
+     086E 20CE     
+     0870 58C0     
+     0872 ABAA     
+     0874 0854     
+     0876 AD10     
+     0878 055C     
+     087A BD35     
+     087C B136     
+     087E C771     
+     0880 29A3     
+     0882 ADF5     
+     0884 62CB     
+     0886 4EF9     
+     0888 59FD     
+     088A 9900     
+     088C 2412     
+     088E C720     
+     0890 9AC1     
+     0892 E9AB     
+     0894 0D84     
+     0896 23E4     
+     0898 E40A     
+     089A 1C58     
+     089C A104     
+     089E C024     
+     08A0 1BAC     
+     08A2 0450     
+     08A4 1EDC     
+     08A6 1C1A     
+     08A8 1BF4     
+     08AA 1C26     
+     08AC 1D84     
+     08AE 1DE8     
+     08B0 1DFE     
+     08B2 5A1A     
+     08B4 1E56     
+     08B6 1D68     
+     08B8 1D70     
+     08BA 06D2     
+     08BC 1E8A     
+     08BE 1CA4     
+     08C0 1CDC     
+     08C2 1D18     
+     08C4 8638     
+     08C6 1E94     
+     08C8 1EA6     
+     08CA 95AA     
+     08CC D21F     
+     08CE 601F     
+     08D0 6E1F     
+     08D2 A61F     
+     08D4 B41D     
+     08D6 9A1D     
+     08D8 BE1F     
+     08DA 38CA     
+     08DC 00D3     
+     08DE DE1C     
+     08E0 6820     
+     08E2 1220     
+     08E4 2620     
+     08E6 3620     
+     08E8 4620     
+     08EA 6A1C     
+     08EC 3AC0     
+     08EE A8AF     
+     08F0 0149     
+     08F2 B1B1     
+     08F4 D2AD     
+     08F6 F48C     
+     08F8 D8E9     
+     08FA 3DA8     
+     08FC 17FA     
+     08FE EDC3     
+     0900 80C0     
+     0902 BDF0     
+     0904 07ED     
+     0906 F9D4     
+     0908 1780     
+     090A 8D08     
+     090C F2AA     
+     090E 9484     
+     0910 F8C2     
+     0912 B883     
+     0914 1892     
+     0916 03D1     
+     0918 9FC0     
+     091A E888     
+     091C C023     
+     091E C1E1     
+     0920 29A4     
+     0922 E2B4     
+     0924 FDBA     
+     0926 E0E2     
+     0928 4019     
+     092A B623     
+     092C CB41     
+     092E 7D51     
+     0930 C0AE     
+     0932 C3B4     
+     0934 712F     
+     0936 C801     
+     0938 12C0     
+     093A B51B     
+     093C 8FDD     
+     093E C1A0     
+     0940 FDA2     
+     0942 70CA     
+     0944 93BF     
+     0946 0208     
+     0948 E328     
+     094A C10E     
+     094C 13A0     
+     094E CDC0     
+     0950 E289     
+     0952 1FAE     
+     0954 11A4     
+     0956 0838     
+     0958 9194     
+     095A 1EF2     
+     095C FEDC     
+     095E 901F     
+     0960 94E2     
+     0962 808F     
+     0964 C1A5     
+     0966 3A01     
+     0968 7899     
+     096A 8262     
+     096C 07C1     
+     096E 02A1     
+     0970 02A1     
+     0972 2DFA     
+     0974 C50C     
+     0976 8C73     
+     0978 ECB7     
+     097A 20A0     
+     097C 7FA8     
+     097E CD78     
+     0980 689D     
+     0982 0222     
+     0984 1B04     
+     0986 307A     
+     0988 89C0     
+     098A 9584     
+     098C FBF4     
+     098E C1F7     
+     0990 CDB8     
+     0992 CAA0     
+     0994 036A     
+     0996 939A     
+     0998 8F60     
+     099A 0C87     
+     099C B0E1     
+     099E 8DC0     
+     09A0 D079     
+     09A2 7D28     
+     09A4 6AC0     
+     09A6 9FA0     
+     09A8 3C0B     
+     09AA CC26     
+     09AC 5032     
+     09AE 1314     
+     09B0 68B3     
+     09B2 6024     
+     09B4 39B8     
+     09B6 B260     
+     09B8 D81F     
+     09BA BC8C     
+     09BC 1A5A     
+     09BE FDA4     
+     09C0 D82F     
+     09C2 06E9     
+     09C4 FCAC     
+     09C6 3869     
+     09C8 6072     
+     09CA 4C4E     
+     09CC DD7A     
+     09CE 0C38     
+     09D0 4EBC     
+     09D2 7E0A     
+     09D4 CA82     
+     09D6 EDC8     
+     09D8 1B16     
+     09DA 54BC     
+     09DC C4D9     
+     09DE 8A54     
+     09E0 6832     
+     09E2 7818     
+     09E4 78C1     
+     09E6 4129     
+     09E8 4E07     
+     09EA FD2C     
+     09EC 43C1     
+     09EE 0307     
+     09F0 1739     
+     09F2 4875     
+     09F4 A73C     
+     09F6 CE83     
+     09F8 0545     
+     09FA C3ED     
+     09FC 1381     
+     09FE 883A     
+     0A00 8D45     
+     0A02 16AF     
+     0A04 C584     
+     0A06 9832     
+     0A08 0983     
+     0A0A BE54     
+     0A0C CB9C     
+     0A0E 8E5D     
+     0A10 688F     
+     0A12 1011     
+     0A14 DC5D     
+     0A16 5D85     
+     0A18 3E50     
+     0A1A 5C34     
+     0A1C 1C69     
+     0A1E 88DC     
+     0A20 8FCB     
+     0A22 6ADD     
+     0A24 1ED0     
+     0A26 26C1     
+     0A28 2D88     
+     0A2A 24E5     
+     0A2C 130F     
+     0A2E 9437     
+     0A30 0874     
+     0A32 4939     
+     0A34 BB17     
+     0A36 C10A     
+     0A38 ACD0     
+     0A3A B53C     
+     0A3C EC26     
+     0A3E F03B     
+     0A40 161E     
+     0A42 5CCA     
+     0A44 E941     
+     0A46 060D     
+     0A48 A980     
+     0A4A 07A3     
+     0A4C 03AF     
+     0A4E E48A     
+     0A50 759B     
+     0A52 39CB     
+     0A54 4508     
+     0A56 1860     
+     0A58 2D01     
+     0A5A 8658     
+     0A5C 30C3     
+     0A5E ED6A     
+     0A60 309F     
+     0A62 BF0C     
+     0A64 2412     
+     0A66 202A     
+     0A68 4EFE     
+     0A6A C1B0     
+     0A6C 3497     
+     0A6E 3598     
+     0A70 1C1B     
+     0A72 4C16     
+     0A74 3209     
+     0A76 F43D     
+     0A78 A90A     
+     0A7A 6923     
+     0A7C 221B     
+     0A7E 4AA0     
+     0A80 06E7     
+     0A82 3C11     
+     0A84 ADA0     
+     0A86 6D4A     
+     0A88 38AA     
+     0A8A 250C     
+     0A8C 8B15     
+     0A8E A09D     
+     0A90 FDCD     
+     0A92 C4CE     
+     0A94 4A41     
+     0A96 C5C2     
+     0A98 645D     
+     0A9A 758D     
+     0A9C C694     
+     0A9E 3780     
+     0AA0 4E05     
+     0AA2 10A2     
+     0AA4 484D     
+     0AA6 078D     
+     0AA8 104B     
+     0AAA 5A54     
+     0AAC 9B05     
+     0AAE 014E     
+     0AB0 B403     
+     0AB2 105A     
+     0AB4 D09C     
+     0AB6 0882     
+     0AB8 1053     
+     0ABA 35FC     
+     0ABC D244     
+     0ABE 9C8E     
+     0AC0 CB42     
+     0AC2 D3F9     
+     0AC4 0871     
+     0AC6 9650     
+     0AC8 C8AB     
+     0ACA 7C8D     
+     0ACC 103D     
+     0ACE 24D8     
+     0AD0 E5F5     
+     0AD2 E50E     
+     0AD4 0540     
+     0AD6 4080     
+     0AD8 102F     
+     0ADA D883     
+     0ADC E08E     
+     0ADE 1015     
+     0AE0 96E0     
+     0AE2 8B28     
+     0AE4 1F4C     
+     0AE6 4462     
+     0AE8 C02A     
+     0AEA 25F3     
+     0AEC 0240     
+     0AEE 000F     
+     0AF0 1301     
+     0AF2 0A44     
+     0AF4 5F78     
+     0AF6 95B8     
+     0AF8 AD08     
+     0AFA 82E4     
+     0AFC D92D     
+     0AFE 8DDA     
+     0B00 131D     
+     0B02 CBF1     
+     0B04 086C     
+     0B06 21C0     
+     0B08 B4A6     
+     0B0A AD9A     
+     0B0C 2656     
+     0B0E AAC5     
+     0B10 C51A     
+     0B12 859D     
+     0B14 85CB     
+     0B16 4F6B     
+     0B18 04CC     
+     0B1A 387D     
+     0B1C F5F4     
+     0B1E CA85     
+     0B20 81E3     
+     0B22 D81B     
+     0B24 7054     
+     0B26 A948     
+     0B28 0E4C     
+     0B2A F1C5     
+     0B2C 1564     
+     0B2E B82C     
+     0B30 F06A     
+     0B32 0C08     
+     0B34 0C57     
+     0B36 B82D     
+     0B38 AA7E     
+     0B3A 4978     
+     0B3C 7122     
+     0B3E 78C3     
+     0B40 68A8     
+     0B42 0B02     
+     0B44 2E08     
+     0B46 88C2     
+     0B48 4A05     
+     0B4A C94B     
+     0B4C B12F     
+     0B4E 41A8     
+     0B50 540D     
+     0B52 C1AF     
+     0B54 FC0A     
+     0B56 9DFB     
+     0B58 45C4     
+     0B5A C393     
+     0B5C 350C     
+     0B5E D0DC     
+     0B60 D683     
+     0B62 88D6     
+     0B64 B5C9     
+     0B66 5AEE     
+     0B68 1604     
+     0B6A 04EE     
+     0B6C 0860     
+     0B6E 1A8A     
+     0B70 102D     
+     0B72 D003     
+     0B74 D51A     
+     0B76 4F30     
+     0B78 AD64     
+     0B7A 7C06     
+     0B7C 6CAE     
+     0B7E 14D1     
+     0B80 D1A8     
+     0B82 28A4     
+     0B84 F91E     
+     0B86 1250     
+     0B88 626E     
+     0B8A C04E     
+     0B8C A043     
+     0B8E D85A     
+     0B90 0F05     
+     0B92 83CB     
+     0B94 83D1     
+     0B96 1369     
+     0B98 00AF     
+     0B9A F9D8     
+     0B9C E58B     
+     0B9E CC2E     
+     0BA0 B8E1     
+     0BA2 16B8     
+     0BA4 F86D     
+     0BA6 9DAE     
+     0BA8 04EA     
+     0BAA 044C     
+     0BAC 2AF0     
+     0BAE 8709     
+     0BB0 B01D     
+     0BB2 0A78     
+     0BB4 54FC     
+     0BB6 1B4E     
+     0BB8 BC62     
+     0BBA 80AE     
+     0BBC 04C9     
+     0BBE D475     
+     0BC0 8939     
+     0BC2 161E     
+     0BC4 DB8D     
+     0BC6 375A     
+     0BC8 10D7     
+     0BCA CF48     
+     0BCC D463     
+     0BCE CCB0     
+     0BD0 7D06     
+     0BD2 7A84     
+     0BD4 C0F3     
+     0BD6 F145     
+     0BD8 A3F4     
+     0BDA 0816     
+     0BDC 04A7     
+     0BDE F543     
+     0BE0 41EC     
+     0BE2 F933     
+     0BE4 4316     
+     0BE6 FCBC     
+     0BE8 09A4     
+     0BEA A104     
+     0BEC A3AA     
+     0BEE 05F3     
+     0BF0 DBE4     
+     0BF2 171C     
+     0BF4 A66E     
+     0BF6 E7E1     
+     0BF8 9910     
+     0BFA 22CB     
+     0BFC B3D8     
+     0BFE 4572     
+     0C00 7504     
+     0C02 A223     
+     0C04 3104     
+     0C06 DE0A     
+     0C08 8C9D     
+     0C0A 012E     
+     0C0C 05B8     
+     0C0E 0475     
+     0C10 8979     
+     0C12 1290     
+     0C14 B881     
+     0C16 282D     
+     0C18 05F1     
+     0C1A DC35     
+     0C1C E5BB     
+     0C1E 0868     
+     0C20 593C     
+     0C22 9DD0     
+     0C24 1C13     
+     0C26 2D5D     
+     0C28 8C8B     
+     0C2A 8D21     
+     0C2C 465A     
+     0C2E 3431     
+     0C30 C0A5     
+     0C32 2A64     
+     0C34 E27A     
+     0C36 F90C     
+     0C38 6F0A     
+     0C3A 112C     
+     0C3C 685B     
+     0C3E F94C     
+     0C40 5A90     
+     0C42 9410     
+     0C44 9365     
+     0C46 7869     
+     0C48 7400     
+     0C4A 6CA1     
+     0C4C F86A     
+     0C4E 3C30     
+     0C50 003A     
+     0C52 005F     
+     0C54 3B00     
+     0C56 2B00     
+     0C58 2D2A     
+     0C5A AA2F     
+     0C5C 2583     
+     0C5E 6472     
+     0C60 6F70     
+     0C62 95F7     
+     0C64 A275     
+     0C66 7000     
+     0C68 7069     
+     0C6A 636B     
+     0C6C 7200     
+     0C6E 5F69     
+     0C70 6D6D     
+     0C72 6564     
+     0C74 6174     
+     0C76 DD41     
+     0C78 2D43     
+     0C7A 219F     
+     0C7C F173     
+     0C7E 7761     
+     0C80 C9A8     
+     0C82 B974     
+     0C84 BF6A     
+     0C86 6DF8     
+     0C88 A27F     
+     0C8A 27A3     
+     0C8C 283E     
+     0C8E 729E     
+     0C90 D73E     
+     0C92 003D     
+     0C94 C338     
+     0C96 7973     
+     0C98 8C97     
+     0C9A 002C     
+     0C9C 2C00     
+     0C9E 6B65     
+     0CA0 79FB     
+     0CA2 36DF     
+     0CA4 2374     
+     0CA6 3F9E     
+     0CA8 3F7C     
+     0CAA 005E     
+     0CAC 23FB     
+     0CAE 3CAF     
+     0CB0 B55F     
+     0CB2 E6D7     
+     0CB4 6372     
+     0CB6 616C     
+     0CB8 8F00     
+     0CBA 68C1     
+     0CBC AE4C     
+     0CBE 7367     
+     0CC0 EE74     
+     0CC2 E363     
+     0CC4 3D7E     
+     0CC6 636F     
+     0CC8 6D89     
+     0CCA C738     
+     0CCC 6E67     
+     0CCE BBFB     
+     0CD0 706F     
+     0CD2 D5F9     
+     0CD4 6E8E     
+     0CD6 D964     
+     0CD8 7322     
+     0CDA EDF8     
+     0CDC 9EB1     
+     0CDE 2065     
+     0CE0 6D91     
+     0CE2 7A20     
+     0CE4 3020     
+     0CE6 3A0E     
+     0CE8 203B     
+     0CEA 0D0A     
+     0CEC E178     
+     0CEE 2E20     
+     0CF0 31E6     
+     0CF2 7873     
+     0CF4 386C     
+     0CF6 6C20     
+     0CF8 32E0     
+     0CFA 6371     
+     0CFC 75E3     
+     0CFE A7C1     
+     0D00 3238     
+     0D02 83DC     
+     0D04 FAEF     
+     0D06 4FDE     
+     0D08 8439     
+     0D0A E1E1     
+     0D0C E263     
+     0D0E 6C75     
+     0D10 6465     
+     0D12 B533     
+     0D14 3016     
+     0D16 3F61     
+     0D18 76DC     
+     0D1A 924C     
+     0D1C ED21     
+     0D1E 18E6     
+     0D20 0FE8     
+     0D22 9840     
+     0D24 9240     
+     0D26 4098     
+     0D28 2C92     
+     0D2A 2C2C     
+     0D2C 9D23     
+     0D2E F235     
+     0D30 A028     
+     0D32 6A09     
+     0D34 F736     
+     0D36 349A     
+     0D38 E7BB     
+     0D3A E2DA     
+     0D3C AC5B     
+     0D3E 7630     
+     0D40 0E48     
+     0D42 AC3B     
+     0D44 833C     
+     0D46 EAC2     
+     0D48 5D94     
+     0D4A 31FC     
+     0D4C D6DE     
+     0D4E E6C8     
+     0D50 C8CE     
+     0D52 388A     
+     0D54 0EC7     
+     0D56 EF2B     
+     0D58 C0F9     
+     0D5A FA9D     
+     0D5C E82D     
+     0D5E 692D     
+     0D60 2D6F     
+     0D62 BB5F     
+     0D64 72E4     
+     0D66 5FD4     
+     0D68 9BDE     
+     0D6A 2BD6     
+     0D6C 8B3E     
+     0D6E DB68     
+     0D70 5B72     
+     0D72 B59E     
+     0D74 FC5C     
+     0D76 6583     
+     0D78 DAE6     
+     0D7A ABDC     
+     0D7C F32B     
+     0D7E DA3B     
+     0D80 BFDB     
+     0D82 2DD2     
+     0D84 D8ED     
+     0D86 3C48     
+     0D88 398B     
+     0D8A E8B8     
+     0D8C 3ECA     
+     0D8E FCE3     
+     0D90 CCB9     
+     0D92 3D20     
+     0D94 FFF6     
+     0D96 CBFB     
+     0D98 FACC     
+     0D9A 4FCD     
+     0D9C FAEF     
+     0D9E CD2B     
+     0DA0 9C2F     
+     0DA2 3D9A     
+     0DA4 3FF1     
+     0DA6 E0FF     
+     0DA8 CF6D     
+     0DAA FDCB     
+     0DAC E86E     
+     0DAE 7BDB     
+     0DB0 E09A     
+     0DB2 B021     
+     0DB4 FFEB     
+     0DB6 DE9B     
+     0DB8 E463     
+     0DBA 6B76     
+     0DBC 3348     
+     0DBE F8E8     
+     0DC0 F130     
+     0DC2 3CD0     
+     0DC4 A262     
+     0DC6 2133     
+     0DC8 32D9     
+     0DCA 4488     
+     0DCC 2E2E     
+     0DCE 3EF3     
+     0DD0 E46D     
+     0DD2 68CA     
+     0DD4 F3AB     
+     0DD6 68D7     
+     0DD8 9A2D     
+     0DDA 613F     
+     0DDC B963     
+     0DDE E360     
+     0DE0 708F     
+     0DE2 7661     
+     0DE4 878B     
+     0DE6 D527     
+     0DE8 20AE     
+     0DEA 862C     
+     0DEC A86F     
+     0DEE 35B6     
+     0DF0 3FE6     
+     0DF2 37CA     
+     0DF4 DCD8     
+     0DF6 DF08     
+     0DF8 8773     
+     0DFA DAF8     
+     0DFC E9DF     
+     0DFE 7E7E     
+     0E00 FDBC     
+     0E02 4673     
+     0E04 616E     
+     0E06 74F0     
+     0E08 A73A     
+     0E0A 87BE     
+     0E0C 0CF8     
+     0E0E F59C     
+     0E10 DFDA     
+     0E12 595F     
+     0E14 FD62     
+     0E16 6C65     
+     0E18 9CFC     
+     0E1A F896     
+     0E1C 2F2C     
+     0E1E 5E77     
+     0E20 0863     
+     0E22 6567     
+     0E24 5E9D     
+     0E26 B234     
+     0E28 D6E6     
+     0E2A 7D61     
+     0E2C 6761     
+     0E2E CDB5     
+     0E30 CE6D     
+     0E32 BCFD     
+     0E34 CEC2     
+     0E36 6675     
+     0E38 6E74     
+     0E3A A46C     
+     0E3C B830     
+     0E3E C059     
+     0E40 D67B     
+     0E42 2028     
+     0E44 17AD     
+     0E46 2D29     
+     0E48 834A     
+     0E4A FDB4     
+     0E4C E9F9     
+     0E4E D9F3     
+     0E50 2208     
+     0E52 E178     
+     0E54 7D9E     
+     0E56 DF9F     
+     0E58 A8C6     
+     0E5A E2FD     
+     0E5C F27F     
+     0E5E E88A     
+     0E60 7EF2     
+     0E62 C93D     
+     0E64 B637     
+     0E66 F47D     
+     0E68 9CD4     
+     0E6A F60A     
+     0E6C EA07     
+     0E6E 47A9     
+     0E70 E3AF     
+     0E72 4958     
+     0E74 5471     
+     0E76 E0DF     
+     0E78 F6D3     
+     0E7A 48DF     
+     0E7C F29F     
+     0E7E F5BC     
+     0E80 977E     
+     0E82 D75A     
+     0E84 EE15     
+     0E86 E773     
+     0E88 566E     
+     0E8A 6E52     
+     0E8C 6F7B     
+     0E8E 86FF     
+     0E90 62F3     
+     0E92 F11E     
+     0E94 CF9C     
+     0E96 DEDD     
+     0E98 4D9F     
+     0E9A D0F6     
+     0E9C C3B8     
+     0E9E 2C66     
+     0EA0 CF8E     
+     0EA2 367A     
+     0EA4 EEC8     
+     0EA6 6A3E     
+     0EA8 1B6C     
+     0EAA BC3B     
+     0EAC 73AF     
+     0EAE 7D80     
+     0EB0 971A     
+     0EB2 F587     
+     0EB4 AC9B     
+     0EB6 656C     
+     0EB8 739F     
+     0EBA 5E60     
+     0EBC 0DF6     
+     0EBE 8C78     
+     0EC0 5E3C     
+     0EC2 023C     
+     0EC4 6669     
+     0EC6 C25F     
+     0EC8 E75D     
+     0ECA 8A31     
+     0ECC 6362     
+     0ECE F5ED     
+     0ED0 B2A0     
+     0ED2 6A69     
+     0ED4 3242     
+     0ED6 3F64     
+     0ED8 6FC9     
+     0EDA 2CCD     
+     0EDC 20D3     
+     0EDE E447     
+     0EE0 0CA9     
+     0EE2 B5A9     
+     0EE4 2B87     
+     0EE6 5048     
+     0EE8 EE4F     
+     0EEA 1669     
+     0EEC 310F     
+     0EEE C6A3     
+     0EF0 3D19     
+     0EF2 D234     
+     0EF4 D7C8     
+     0EF6 D7E0     
+     0EF8 850E     
+     0EFA F048     
+     0EFC CD10     
+     0EFE D9DA     
+     0F00 F5A2     
+     0F02 8D73     
+     0F04 2209     
+     0F06 282D     
+     0F08 4067     
+     0F0A 4E07     
+     0F0C 9ED6     
+     0F0E EE4C     
+     0F10 DC32     
+     0F12 332A     
+     0F14 065A     
+     0F16 D2D4     
+     0F18 2233     
+     0F1A 34BF     
+     0F1C 3DA0     
+     0F1E 7FF2     
+     0F20 784D     
+     0F22 64D4     
+     0F24 B42D     
+     0F26 DD00     
+     0F28 7F38     
+     0F2A 90F0     
+     0F2C C8F1     
+     0F2E 4D9F     
+     0F30 AAC6     
+     0F32 E32E     
+     0F34 5696     
+     0F36 77B6     
+     0F38 5A2E     
+     0F3A 01DD     
+     0F3C 56DE     
+     0F3E 80C1     
+     0F40 278F     
+     0F42 0E83     
+     0F44 F774     
+     0F46 B617     
+     0F48 932A     
+     0F4A 43AA     
+     0F4C E124     
+     0F4E FCEF     
+     0F50 1E6D     
+     0F52 0055     
+     0F54 56       
+0125               
+0126               
+0127                       DORG >1000
+0128               UNZIP_DATA
+0129 1000                  BSS 1
+0130                       END

@@ -1,0 +1,258 @@
+XAS99 CROSS-ASSEMBLER   VERSION 3.6.5
+     **** ****     > serialint.a99
+0001                                                       ; Mux0 Constants
+0002      F000     M0STAT  EQU >F000                       ;  Read status: bit 0 = Transmit Busy, bit 1 = Data Received
+0003      F002     M0RX    EQU >F002                       ;  Read byte received in 8 LSB
+0004      F004     M0TX    EQU >F004                       ;  Write byte to send in 8 LSB
+0005      F006     M0RST   EQU >F006                       ;  Write to reset interrupt and Data Received status
+0006      0003     M0IRQ   EQU >3                          ;  IRQ for Mux0
+0007               
+0008                                                       ; Mux1 constants
+0009      F00A     M1STAT  EQU >F00A
+0010      F00C     M1RX    EQU >F00C
+0011      F00E     M1TX    EQU >F00E
+0012      F010     M1RST   EQU >F010
+0013      0004     M1IRQ   EQU >4
+0014               
+0015      0001     TMRIRQ  EQU >1                          ; Timer IRQ
+0016      F0F0     TMRRST  EQU >F0F0
+0017               
+0018               
+0019               ;*************************************************
+0020               ;                       Scheduler RAM
+0021               
+0022                       DORG >1000                      ; RAM start
+0023 1000          OSWP    BSS 32                          ; Set aside 32 bytes/16 words for primary workspace
+0024               
+0025               TCBS                                    ; Start of TCB Table
+0026 1020                  BSS 6                           ; WP,PC,ST
+0027 1026                  BSS 6
+0028               TCBE                                    ; End of TCB Table
+0029               
+0030 102C          TCUR    BSS 2                           ; Pointer to TCB for current task
+0031               
+0032 102E          M0TXP   BSS 2                           ;Mux 0 TX Pointer
+0033 1030          M0RXB   BSS 2                           ;Mux 0 RX Byte
+0034 1032          M1TXP   BSS 2                           ;Mux 1 TX Pointer
+0035 1034          M1RXB   BSS 2                           ;Mux 1 RX Byte
+0036               
+0037               ;*************************************************
+0038               ;                       ROM Start
+0039                       AORG >0000                      ; Reset Vector...
+0040 0000 1000             DATA OSWP                       ;       OS workspace addr
+0041 0002 010C             DATA INIT                       ;       Init code
+0042               
+0043               TIMERV  AORG TMRIRQ * 4                 ; Timer Vector
+0044 0004 1000             DATA OSWP                       ;       OS Workspace
+0045 0006 0124             DATA TIMER                      ;       Scheduler code
+0046               
+0047               M0IRQV  AORG M0IRQ * 4
+0048 000C 1000             DATA OSWP
+0049 000E 0152             DATA MUX0
+0050               
+0051               M1IRQV  AORG M1IRQ * 4
+0052 0010 1000             DATA OSWP
+0053 0012 0160             DATA MUX1
+0054               
+0055                       AORG >0100
+0056               INITDATA                                ; Initial Ram Values
+0057 0100 2000             DATA T1RAM, TOP1, >0008         ; Task 1 TCB
+     0102 0200     
+     0104 0008     
+0058 0106 3000             DATA T2RAM, TOP2, >0008         ; Task 2 TCB
+     0108 0300     
+     010A 0008     
+0059               INITEND
+0060               
+0061               INIT
+0062 010C 0200  12         LI R0, INITDATA                 ; Copy TCBs from ROM to RAM
+     010E 0100     
+0063 0110 0201  12         LI R1, TCBS
+     0112 1020     
+0064 0114 0202  12         LI R2, (INITEND-INITDATA)/2
+     0116 0006     
+0065 0118 CC70  42 COPY    MOV *R0+, *R1+
+0066 011A 0602  10         DEC R2
+0067 011C 16FD  10         JNE COPY
+0068               
+0069                                                       ; Load and run Task 1
+0070 011E 0201  12         LI R1, TCBS                     ; Set the first task as the "next" to run
+     0120 1020     
+0071 0122 1011  10         JMP RES                         ; Jump straight to resume it!
+0072               
+0073               
+0074 0124 0300  14 TIMER   LIMI 0                          ; INT OFF
+     0126 0000     
+0075 0128 04E0  26         CLR @TMRRST                     ; MMIO Write to clear timer interrupt
+     012A F0F0     
+0076               
+0077 012C C020  22         MOV @TCUR, R0                   ;Load current TCB address to R0
+     012E 102C     
+0078 0130 C040  14         MOV R0, R1                      ;Copy to R1...
+0079 0132 0221  14         AI R1, >6                       ;and increment to next TCB
+     0134 0006     
+0080               
+0081                                                       ;Loop back around to the first task
+0082 0136 0281  14         CI R1, TCBE                     ;If next task is NOT past the end of the TCB Table
+     0138 102C     
+0083 013A 1602  10         JNE SWAP                        ;THEN goto SWAP
+0084 013C 0201  12         LI R1, TCBS                     ;ELSE set it to the first one
+     013E 1020     
+0085               SWAP
+0086               
+0087               SUS                                     ;Suspend task to TCB in R0
+0088 0140 CC0D  30         MOV R13, *R0+                   ; Save context to TCB
+0089 0142 CC0E  30         MOV R14, *R0+
+0090 0144 CC0F  30         MOV R15, *R0+
+0091               RES                                     ;Resume task from TCB in R1
+0092 0146 C801  22         MOV R1, @TCUR                   ; Save as current task
+     0148 102C     
+0093 014A C371  26         MOV *R1+, R13                   ; Restore context from TCB
+0094 014C C3B1  26         MOV *R1+, R14
+0095 014E C3F1  26         MOV *R1+, R15
+0096 0150 0380  14         RTWP
+0097               
+0098 0152 0300  14 MUX0    LIMI 0
+     0154 0000     
+0099 0156 0204  12         LI R4, M0TXP
+     0158 102E     
+0100 015A 0201  12         LI R1, M0STAT
+     015C F000     
+0101 015E 1006  10         JMP MUXTX
+0102               
+0103 0160 0300  14 MUX1    LIMI 0
+     0162 0000     
+0104 0164 0204  12         LI R4, M1TXP
+     0166 1032     
+0105 0168 0201  12         LI R1, M1STAT
+     016A F00A     
+0106               
+0107               MUXTX
+0108 016C C0D1  22         MOV *R1, R3                     ;Load mux status
+0109 016E 04E1  26         CLR @6(R1)                      ;Clear IRQ
+     0170 0006     
+0110 0172 C083  14         MOV R3, R2
+0111 0174 0242  14         ANDI R2, >0001                  ;Transmit busy?
+     0176 0001     
+0112 0178 1609  10         JNE MUXRX                       ;If so go to RX
+0113                                                       ;Ready to transmit
+0114 017A C094  22         MOV *R4, R2                     ;Load TX Pointer
+0115 017C 1307  10         JEQ MUXRX                       ;Nothing to transmit? goto RX
+0116 017E D172  24         MOVB *R2+, R5                   ;Load transmit data and increment pointer
+0117 0180 1304  10         JEQ DONE                        ;Null? done!
+0118 0182 D845  30         MOVB R5, @5(R1)                 ;Transmit
+     0184 0005     
+0119 0186 C502  26         MOV R2, *R4                     ;Store incremented poiter
+0120 0188 1001  10         JMP MUXRX
+0121               DONE
+0122 018A 04D4  22         CLR *R4                         ;Clear transmit pointer
+0123               MUXRX
+0124 018C C083  14         MOV R3, R2
+0125 018E 0242  14         ANDI R2, >0002                  ;Byte received
+     0190 0002     
+0126 0192 1303  10         JEQ RET
+0127 0194 C921  42         MOV @2(R1), @2(R4)
+     0196 0002     
+     0198 0002     
+0128 019A 0380  14 RET     RTWP
+0129               
+0130               
+0131               ;*************************************************
+0132               ;                       Task 1
+0133                       DORG >2000
+0134 2000          T1RAM   BSS 32                          ;Workspace
+0135                       AORG >0200
+0136 0200 0202  12 TOP1    LI R2, STR1                     ; Store the text address in R1
+     0202 021A     
+0137 0204 C802  22         MOV R2, @M0TXP
+     0206 102E     
+0138 0208 0420  34         BLWP @M0IRQV                    ; trigger transmit
+     020A 000C     
+0139 020C C000  14         MOV R0, R0
+0140               LOOP1                                   ;Wait for tx to complete
+0141 020E 0420  34         BLWP @TIMERV                    ; yield
+     0210 0004     
+0142 0212 C0A0  22         MOV @M0TXP, R2                  ;Load data pointer
+     0214 102E     
+0143 0216 16FB  10         JNE LOOP1                       ;if not zero yet keep waiting
+0144 0218 10F3  10         JMP TOP1
+0145 021A 4845     STR1    TEXT "HELLORLD!"
+     021C 4C4C     
+     021E 4F52     
+     0220 4C44     
+     0222 21       
+0146 0223   0D             BYTE 13, 10, 0
+     0224 0A00     
+0147               
+0148               ;*************************************************
+0149               ;                       Task 2
+0150                       DORG >3000
+0151 3000          T2RAM   BSS 32                          ;Workspace
+0152 3020          T2BUF   BSS 2
+0153                       AORG >0300
+0154 0300 0202  12 TOP2    LI R2, STR2                     ; Store the text address in R1
+     0302 0332     
+0155 0304 C802  22         MOV R2, @M1TXP
+     0306 1032     
+0156 0308 0420  34         BLWP @M1IRQV                    ; trigger transmit
+     030A 0010     
+0157               
+0158               LOOP2                                   ;Wait for RX Byte
+0159 030C 0420  34         BLWP @TIMERV                    ; yield
+     030E 0004     
+0160 0310 C260  22         MOV @M1RXB, R9                  ; Load RX Byte
+     0312 1034     
+0161 0314 13FB  10         JEQ LOOP2                       ; If zero loop
+0162               
+0163 0316 04E0  26         CLR @T2BUF                      ; Clear transmit buf
+     0318 3020     
+0164 031A D820  38         MOVB @M1RXB+1, @T2BUF           ; Move rx byte into transmit buf
+     031C 1035     
+     031E 3020     
+0165                                                       ; Note second byte of word is the null
+0166 0320 04E0  18         CLR @M1RXB                      ; Clear receive byte
+     0322 1034     
+0167               
+0168 0324 0202  12         LI R2, T2BUF                    ; Store the text address in R1
+     0326 3020     
+0169 0328 C802  22         MOV R2, @M1TXP
+     032A 1032     
+0170 032C 0420  34         BLWP @M1IRQV                    ; trigger transmit
+     032E 0010     
+0171 0330 10ED  10         JMP LOOP2                       ; Start over
+0172               
+0173 0332 4865     STR2    TEXT "Hello Packed String, Hello Interupt IO, this terminal echos..."
+     0334 6C6C     
+     0336 6F20     
+     0338 5061     
+     033A 636B     
+     033C 6564     
+     033E 2053     
+     0340 7472     
+     0342 696E     
+     0344 672C     
+     0346 2048     
+     0348 656C     
+     034A 6C6F     
+     034C 2049     
+     034E 6E74     
+     0350 6572     
+     0352 7570     
+     0354 7420     
+     0356 494F     
+     0358 2C20     
+     035A 7468     
+     035C 6973     
+     035E 2074     
+     0360 6572     
+     0362 6D69     
+     0364 6E61     
+     0366 6C20     
+     0368 6563     
+     036A 686F     
+     036C 732E     
+     036E 2E2E     
+0174 0370 0D0A             BYTE 13, 10, 0
+     0372 00       
+0175               
+0176                       END

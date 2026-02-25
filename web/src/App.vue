@@ -5,18 +5,17 @@ import { markRaw, ref, onMounted, watch } from 'vue';
 import { UeTMS990 } from '@ue-tms9900/emulator/UeTMS990';
 import RomUpload from './components/RomUpload.vue';
 import List from './components/List.vue';
-import History from './components/History.vue';
 import RamViz from './components/RamViz.vue';
 
 const ue = ref<UeTMS990>();
 const term0 = ref();
 const term1 = ref();
-const running = ref(false);
+const running = ref(true);
 const fast = ref(false);
 const list = ref<string>();
 const romImage = ref<Uint8Array>();
 
-const cyclesPerLoop = ref(50000);
+const cyclesPerLoop = ref(75000);
 
 const listRef = ref();
 
@@ -64,11 +63,11 @@ watch(romImage, (romImage) => {
 });
 
 onMounted(async () => {
-  const response = await fetch("serialInt.rom");
+  const response = await fetch("forthBoot.rom");
   const arrayBuffer = await response.arrayBuffer();
   romImage.value = new Uint8Array(arrayBuffer);
 
-  list.value = await (await fetch("serialInt.lst")).text();
+  list.value = await (await fetch("forthBoot.lst")).text();
 
   while (true) {
     if (running.value && ue.value) {
