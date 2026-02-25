@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Terminal from './components/Terminal.vue';
 import Status from './components/Status.vue';
-import { ref, onMounted, watch } from 'vue';
+import { markRaw, ref, onMounted, watch } from 'vue';
 import { UeTMS990 } from '@ue-tms9900/emulator/UeTMS990';
 import RomUpload from './components/RomUpload.vue';
 import List from './components/List.vue';
@@ -15,6 +15,8 @@ const running = ref(false);
 const fast = ref(false);
 const list = ref<string>();
 const romImage = ref<Uint8Array>();
+
+const cyclesPerLoop = ref(50000);
 
 const listRef = ref();
 
@@ -48,6 +50,13 @@ function runTo(a) {
 
 watch(romImage, (romImage) => {
   ue.value = new UeTMS990(romImage);
+  markRaw(ue.value);
+    markRaw(ue.value.memory);
+      markRaw(ue.value.cpu);
+  markRaw(ue.value.ram);
+  markRaw(ue.value.ram.data);
+  markRaw(ue.value.rom);
+  markRaw(ue.value.rom.data);
   ue.value.mux0.setTerminalByteConsumer((b) => term0.value.write(b));
   ue.value.mux1.setTerminalByteConsumer((b) => term1.value.write(b));
   ue.value.cpu.reset();
@@ -63,7 +72,7 @@ onMounted(async () => {
 
   while (true) {
     if (running.value && ue.value) {
-      ue.value.cpu.run(2000, false);
+      ue.value.cpu.run(cyclesPerLoop.value, false);
       if (ue.value.cpu.isStoppedAtBreakpoint()) {
         running.value = false;
       }
@@ -96,7 +105,7 @@ onMounted(async () => {
       <Terminal ref="term1" @byte="(b) => buf1.push(b)"></Terminal>
     </div>
     <div class="status">
-      <Status v-if="!running || !fast"  :ue="ue"></Status>
+      <Status  :ue="ue"></Status>
     </div>
     <div class="controls">
       <h2>Controls:</h2>
@@ -107,7 +116,9 @@ onMounted(async () => {
       <div>
         Timer: <input type="range" min="0" max="50" v-model.number="ue.timer.hz">{{ ue.timer.hz }}Hz
       </div>
-
+      <div>
+        Cycles Per Loop: <input type="range" min="1" max="100000" v-model.number="cyclesPerLoop">{{ cyclesPerLoop }}Hz
+      </div>
       <RomUpload @files-uploaded="handleUpload" />
     </div>
     <div class="list">
@@ -115,7 +126,7 @@ onMounted(async () => {
     </div>
     <div class="history">
       <!--<History v-if="!running || !fast" :cpu="ue.cpu" />-->
-      <RamViz :ue="ue"/>
+      <RamViz v-if="!fast" :ue="ue"/>
     </div>
   </div>
 </template>

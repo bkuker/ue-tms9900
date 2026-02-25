@@ -14,7 +14,7 @@
                 </dd>
                 <dt>Cycles:</dt>
                 <dd>{{ cycles.toLocaleString() }}</dd>
-                <dd>{{ Math.floor(cps).toLocaleString() }} c/s</dd>
+                <dd>{{ Math.floor(cps).toLocaleString() }} cps</dd>
                 <dt>Interrupts:</dt>
                 <dd><span v-if="int !== false">{{ int.toString(2).padStart(4, "0") }}</span><span v-else>none</span>
                 </dd>
@@ -24,8 +24,8 @@
             <h2>Registers:</h2>
             <dl class="registers">
                 <template v-for="r in 16" :key="r">
-                    <dt>R{{ r-1 }}</dt>
-                    <dd>0x{{ ue.cpu.getMemoryWord(wp + 2 * (r-1)).toString(16).padStart(4, "0") }}</dd>
+                    <dt>R{{ r - 1 }}</dt>
+                    <dd>0x{{ ue.cpu.getMemoryWord(wp + 2 * (r - 1)).toString(16).padStart(4, "0") }}</dd>
                 </template>
             </dl>
         </div>
@@ -62,16 +62,21 @@ function update() {
         pc.value = cpu.getPc();
         wp.value = cpu.getWp();
         st.value = cpu.getSt();
-        
-        let now = Date.now();
-        let dt = now - lastTime;
-        lastTime = now;
 
         cycles.value = cpu.getCycles();
-        let dc = cycles.value - lastCycles;
-        lastCycles = cycles.value;
 
-        cps.value = 1000 * dc / dt;
+        if (cycles.value != lastCycles) {
+            let dc = cycles.value - lastCycles;
+            lastCycles = cycles.value;
+
+            let now = Date.now();
+            let dt = now - lastTime;
+            lastTime = now;
+
+            cps.value = 1000 * dc / dt;
+        }
+
+
 
         int.value = props.ue.intEnc.getInterruptState();
         let wpProfile = cpu.getWpProfile();
@@ -90,9 +95,7 @@ requestAnimationFrame(update);
 </script>
 
 <style scoped>
-div.scope {
-   
-}
+div.scope {}
 
 div.scope>div {
     display: inline-block;
