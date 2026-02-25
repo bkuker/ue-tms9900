@@ -14,6 +14,7 @@
                 </dd>
                 <dt>Cycles:</dt>
                 <dd>{{ cycles.toLocaleString() }}</dd>
+                <dd>{{ Math.floor(cps).toLocaleString() }} c/s</dd>
                 <dt>Interrupts:</dt>
                 <dd><span v-if="int !== false">{{ int.toString(2).padStart(4, "0") }}</span><span v-else>none</span>
                 </dd>
@@ -49,16 +50,29 @@ const pc = ref(0);
 const wp = ref(0);
 const st = ref(0);
 const cycles = ref(0);
+const cps = ref(0);
 const int = ref({});
 const pct = ref({});
 
+let lastTime = 0;
+let lastCycles = 0;
 function update() {
     let cpu = props.ue.cpu;
     if (cpu) {
         pc.value = cpu.getPc();
         wp.value = cpu.getWp();
         st.value = cpu.getSt();
+        
+        let now = Date.now();
+        let dt = now - lastTime;
+        lastTime = now;
+
         cycles.value = cpu.getCycles();
+        let dc = cycles.value - lastCycles;
+        lastCycles = cycles.value;
+
+        cps.value = 1000 * dc / dt;
+
         int.value = props.ue.intEnc.getInterruptState();
         let wpProfile = cpu.getWpProfile();
         let wpTotal = 0;
