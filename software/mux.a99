@@ -5,14 +5,14 @@ M0RXB   EQU >F003                       ;  Read byte received
 M0TX    EQU >F004                       ;  Write byte to send in 8 LSB
 M0TXB   EQU >F005                       ;  Write byte to send
 M0RST   EQU >F006                       ;  Write to reset interrupt and Data Received status
-M0IRQ   EQU >3                          ;  IRQ for Mux0
+M0IRQ   EQU >2                          ;  IRQ for Mux0
 
                                         ; Mux1 constants
-MUX1    EQU >F00A
-M1STAT  EQU >F00A
-M1RX    EQU >F00C
-M1RXB   EQU >F00D
-M1TX    EQU >F00E
-M1TXB   EQU >F00F
-M1RST   EQU >F010
-M1IRQ   EQU >4
+MUX1    EQU >F008
+M1STAT  EQU >F008
+M1RX    EQU >F00A
+M1RXB   EQU >F00B
+M1TX    EQU >F00C
+M1TXB   EQU >F00D
+M1RST   EQU >F00E
+M1IRQ   EQU >3

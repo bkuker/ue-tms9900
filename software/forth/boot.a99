@@ -2,7 +2,7 @@
         COPY "../addrs.a99"
 
 TMRIRQ  EQU >1                          ; Timer IRQ
-TMRRST  EQU >F0F0
+TMRRST  EQU >F010
 
 ;*************************************************
 ;                       Stacks

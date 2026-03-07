@@ -116,7 +116,7 @@ onMounted(async () => {
         Timer: <input type="range" min="0" max="50" v-model.number="ue.timer.hz">{{ ue.timer.hz }}Hz
       </div>
       <div>
-        Cycles Per Loop: <input type="range" min="1" max="100000" v-model.number="cyclesPerLoop">{{ cyclesPerLoop }}Hz
+        Cycles Per Loop: <input type="range" min="1" max="100000" v-model.number="cyclesPerLoop">{{ cyclesPerLoop }}
       </div>
       <RomUpload @files-uploaded="handleUpload" />
     </div>

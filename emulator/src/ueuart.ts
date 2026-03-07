@@ -74,7 +74,7 @@ export class UeUart implements InterruptSource, MemoryMapped {
     };
 
     public getSize() {
-        return 10;
+        return 8;
     }
 
     getInterruptCode(): number {

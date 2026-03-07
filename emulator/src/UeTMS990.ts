@@ -22,9 +22,9 @@ export class UeTMS990 {
             this.ram = new RAM(0x1000, 12 * 1024),
             //new ROM(0x0000, 8 * 1024, romData), //TEMPORARY ROM INCREASE
             //new RAM(0x2000, 12 * 1024),
-            this.mux0 = new UeUart(0xF000, 3, this.intEnc),
-            this.mux1 = new UeUart(0XF00A, 4, this.intEnc),
-            this.timer = new Timer(0xF0F0, 1, this.intEnc)
+            this.mux0 = new UeUart(0xF000, 2, this.intEnc),
+            this.mux1 = new UeUart(0XF008, 3, this.intEnc),
+            this.timer = new Timer(0xF010, 1, this.intEnc)
         ]);
         this.cpu = new TMS9900(this.memory, this.intEnc);
     }
