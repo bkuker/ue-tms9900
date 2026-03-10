@@ -74,7 +74,8 @@ typedef struct {
 	char read_buf[32];
 	size_t read_len;
 
-	unsigned short *mux;
+	volatile unsigned short *mux;
+	volatile unsigned short *stat;
 
 	/* Name buffer */
 	char name_buf[32];

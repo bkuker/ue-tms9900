@@ -7,7 +7,7 @@ TMRRST  EQU >F010
 ;*************************************************
 ;                       Stacks
 T0_SP   EQU >4000 - >130
-T1_SP   EQU >3410
+T1_SP   EQU >3500
 
         DORG >4000 - 128
 ;*************************************************
@@ -26,10 +26,8 @@ TCBE                                    ; End of TCB Table
 
 TCUR    BSS 2                           ; Pointer to TCB for current task
 
-M0TXP   BSS 2                           ;Mux 0 TX Pointer
-M0RXD   BSS 2                           ;Mux 0 RX Byte
-M1TXP   BSS 2                           ;Mux 1 TX Pointer
-M1RXD   BSS 2                           ;Mux 1 RX Byte
+M0STATC BSS 2
+M1STATC BSS 2
 
 ;*************************************************
 ;                       ROM Start
@@ -41,20 +39,27 @@ TIMERV  AORG TMRIRQ * 4                 ; Timer Vector
         DATA OSWP                       ;       OS Workspace
         DATA ISR_TIMER                  ;       Scheduler code
 
-;M0IRQV  AORG M0IRQ * 4
-;        DATA OSWP
-;        DATA ISR_MUX_0
+M0IRQV  AORG M0IRQ * 4
+        DATA OSWP
+        DATA ISR_MUX_0
 
-;M1IRQV  AORG M1IRQ * 4
-;        DATA OSWP
-;        DATA ISR_MUX_1
+M1IRQV  AORG M1IRQ * 4
+        DATA OSWP
+        DATA ISR_MUX_1
 
+ISR_MUX_0
+ISR_MUX_1
+        MOV @M0STAT, @M0STATC
+        MOV @M1STAT, @M1STATC
+        CLR @M0RST
+        CLR @M1RST
+        RTWP
 
 ;*************************************************
 ;                       TCB Initialization
 TCB_INIT_DATA                           ; Initial Ram Values
-        DATA T0_WP, UNZIP_DATA, >0001   ; Task 0 TCB //TODO FIX INT MASK!!!
-        DATA T1_WP, UNZIP_DATA, >0001   ; Task 1 TCB
+        DATA T0_WP, UNZIP_DATA, >0003   ; Task 0 TCB //TODO FIX INT MASK!!!
+        DATA T1_WP, UNZIP_DATA, >0003   ; Task 1 TCB
 TCB_INIT_DATA_END
 
 TCB_INIT
@@ -69,11 +74,15 @@ TCB_INIT_COPY
 INIT_STACKS
         LI R1, MUX0
         MOV R1, @T0_WP + (1 * 2)
+        LI R1, M0STATC
+        MOV R1, @T0_WP + (2 * 2)
         LI R1, T0_SP
         MOV R1, @T0_WP + (10 * 2)
 
         LI R1, MUX1
         MOV R1, @T1_WP + (1 * 2)
+        LI R1, M1STATC
+        MOV R1, @T1_WP + (2 * 2)
         LI R1, T1_SP
         MOV R1, @T1_WP + (10 * 2)
         ;B @UNZIP_DATA
