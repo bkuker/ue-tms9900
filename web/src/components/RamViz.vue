@@ -43,7 +43,7 @@ function onMouseMove(e) {
   tooltip.visible = true;
   tooltip.x = e.clientX;
   tooltip.y = e.clientY;
-  tooltip.text = `0x${addr.toString(16).toUpperCase().padStart(4, '0')}  [${addr}]`;
+  tooltip.text = `0x${addr.toString(16).toUpperCase().padStart(4, '0')}  [${addr}] = 0x${props.ue.ram.data[addr-4096].toString(16)}`;
 }
 
 function render() {
