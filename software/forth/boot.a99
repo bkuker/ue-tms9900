@@ -35,10 +35,6 @@ M1STATC BSS 2
         DATA OSWP                       ;       OS workspace addr
         DATA UNZIP                      ;       Init code
 
-TIMERV  AORG TMRIRQ * 4                 ; Timer Vector
-        DATA OSWP                       ;       OS Workspace
-        DATA ISR_TIMER                  ;       Scheduler code
-
 M0IRQV  AORG M0IRQ * 4
         DATA OSWP
         DATA ISR_MUX_0
@@ -46,6 +42,10 @@ M0IRQV  AORG M0IRQ * 4
 M1IRQV  AORG M1IRQ * 4
         DATA OSWP
         DATA ISR_MUX_1
+
+TIMERV  AORG TMRIRQ * 4                 ; Timer Vector
+        DATA OSWP                       ;       OS Workspace
+        DATA ISR_TIMER                  ;       Scheduler code
 
 ISR_MUX_0
 ISR_MUX_1
@@ -58,8 +58,8 @@ ISR_MUX_1
 ;*************************************************
 ;                       TCB Initialization
 TCB_INIT_DATA                           ; Initial Ram Values
-        DATA T0_WP, UNZIP_DATA, >0003   ; Task 0 TCB //TODO FIX INT MASK!!!
-        DATA T1_WP, UNZIP_DATA, >0003   ; Task 1 TCB
+        DATA T0_WP, UNZIP_DATA, >0004   ; Task 0 TCB //TODO FIX INT MASK!!!
+        DATA T1_WP, UNZIP_DATA, >0004   ; Task 1 TCB
 TCB_INIT_DATA_END
 
 TCB_INIT

@@ -1,6 +1,6 @@
 #include "zforth.h"
 
-#define yield __asm__("BLWP @>4")
+#define yield __asm__("BLWP @>10")
 
 extern char coreZF[];
 
