@@ -63,11 +63,11 @@ watch(romImage, (romImage) => {
 });
 
 onMounted(async () => {
-  const response = await fetch("serialInt.rom");
+  const response = await fetch("forthBoot.rom");
   const arrayBuffer = await response.arrayBuffer();
   romImage.value = new Uint8Array(arrayBuffer);
 
-  list.value = await (await fetch("serialInt.lst")).text();
+  list.value = await (await fetch("forthBoot.lst")).text();
 
   while (true) {
     if (running.value && ue.value) {

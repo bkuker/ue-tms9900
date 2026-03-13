@@ -115,7 +115,7 @@ DONE
 MUXRX
         MOV R3, R2
         ANDI R2, >0002                  ;Byte received ??
-        JEQ RET
+        JNE RET
         MOV @2(R1), @2(R4)
 RET     RTWP
 

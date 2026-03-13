@@ -15,15 +15,12 @@ static void putchar(zf_ctx *ctx, char c)
 }
 
 static char getchar(zf_ctx *ctx){
-    while(1){
-        if ( *ctx->stat & 0x02 ){        
-			*ctx->stat = *ctx->mux;    
-            char in = *(ctx->mux+1);
-            *(ctx->mux+3) = 0;
-            return in;
-        }
+	while (*ctx->stat & 0x02)
 		yield;
-    }
+	*ctx->stat = *ctx->mux;    
+	char in = *(ctx->mux+1);
+	*(ctx->mux+3) = 0;
+	return in;
 }
 
 static void puts(zf_ctx *ctx, const char *s)

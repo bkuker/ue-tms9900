@@ -1,7 +1,7 @@
         COPY "../mux.a99"
         COPY "../addrs.a99"
 
-TMRIRQ  EQU >1                          ; Timer IRQ
+TMRIRQ  EQU >4                          ; Timer IRQ
 TMRRST  EQU >F010
 
 ;*************************************************
@@ -72,6 +72,10 @@ TCB_INIT_COPY
         JNE TCB_INIT_COPY
 
 INIT_STACKS
+        LI R1, >0002
+        MOV R1, @M0STATC
+        MOV R1, @M1STATC
+
         LI R1, MUX0
         MOV R1, @T0_WP + (1 * 2)
         LI R1, M0STATC
