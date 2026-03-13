@@ -23,8 +23,8 @@ const MxRX = 2;
 const MxTX = 4;
 const MxRST = 6;
 
-const StatTxBusy = 0b0000000000000001;
-const StatRXReady = 0b0000000000000010;
+const StatTxBusy =  0b0000000000000001;
+const StatRXEmpty = 0b0000000000000010;
 
 export class UeUart implements InterruptSource, MemoryMapped {
     private log: Log = Log.getLog();
@@ -88,7 +88,7 @@ export class UeUart implements InterruptSource, MemoryMapped {
     public readWord(addr: number): number {
         if (addr == this.baseAddr + MxSTAT) {
             //Read status: bit 0 =  Transmit Busy, bit 1 = Data Received
-            return (this.tReady ? 0 : StatTxBusy) | (this.rReady ? StatRXReady : 0);
+            return (this.tReady ? 0 : StatTxBusy) | (this.rReady ? 0 : StatRXEmpty);
         } else if (addr == this.baseAddr + MxRX) {
             //RRD Read the data
             if (!this.rReady)
