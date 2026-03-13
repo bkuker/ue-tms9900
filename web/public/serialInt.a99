@@ -1,8 +1,8 @@
         COPY "../../software/mux.a99"
         COPY "../../software/addrs.a99"
 
-TMRIRQ  EQU >1                          ; Timer IRQ
-TMRRST  EQU >F0F0
+TMRIRQ  EQU >4                          ; Timer IRQ
+TMRRST  EQU >F010
 
 
 ;*************************************************
@@ -29,10 +29,6 @@ M1RXD   BSS 2                           ;Mux 1 RX Byte
         DATA OSWP                       ;       OS workspace addr
         DATA INIT                       ;       Init code
 
-TIMERV  AORG TMRIRQ * 4                 ; Timer Vector
-        DATA OSWP                       ;       OS Workspace
-        DATA TIMERISR                   ;       Scheduler code
-
 M0IRQV  AORG M0IRQ * 4
         DATA OSWP
         DATA MUX0ISR
@@ -40,6 +36,10 @@ M0IRQV  AORG M0IRQ * 4
 M1IRQV  AORG M1IRQ * 4
         DATA OSWP
         DATA MUX1ISR
+
+TIMERV  AORG TMRIRQ * 4                 ; Timer Vector
+        DATA OSWP                       ;       OS Workspace
+        DATA TIMERISR                   ;       Scheduler code
 
         AORG >0100
 INITDATA                                ; Initial Ram Values
