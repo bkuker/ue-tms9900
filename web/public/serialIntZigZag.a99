@@ -1,0 +1,248 @@
+*======================================================
+* serialIntZigZag.a99 — Cooperative dual-UART test
+*                        with animated zigzag indentation
+*
+* Based on bkuker's serialInt3 (confirmed working).
+* UART0: "HELLORLD!" with bouncing left-margin indent (0..MAX_INDENT spaces)
+* UART1: banner then echoes received bytes (unchanged from serialInt3)
+*
+* Zigzag: each transmission advances INDENT toward MAX_INDENT then back
+*   to 0, repeating indefinitely.
+*
+* Build: bash src/mame/ti/hb9900/build_rom.sh serialIntZigZag.a99
+*======================================================
+
+*------------------------------------------------------
+* Inline EQUs from bkuker's mux.a99 and addrs.a99
+*------------------------------------------------------
+MUX0    EQU  >F000
+M0STAT  EQU  >F000              ; status (word read): bit0=TX busy, bit1=no RX data
+M0RX    EQU  >F002
+M0RXB   EQU  >F003
+M0TX    EQU  >F004
+M0TXB   EQU  >F005
+M0RST   EQU  >F006
+M0IRQ   EQU  >2
+
+MUX1    EQU  >F008
+M1STAT  EQU  >F008
+M1RX    EQU  >F00A
+M1RXB   EQU  >F00B
+M1TX    EQU  >F00C
+M1TXB   EQU  >F00D
+M1RST   EQU  >F00E
+M1IRQ   EQU  >3
+
+VECTORS EQU  >0000
+TRAPS   EQU  >0040
+GENERAL EQU  >0080
+RAM_START EQU >1000
+RAM_END EQU  >3FFE
+
+TMRIRQ  EQU  >4                 ; Timer IRQ
+TMRRST  EQU  >F010
+
+MAX_INDENT EQU 10               ; Maximum leading spaces in zigzag
+
+*------------------------------------------------------
+*        Scheduler RAM (identical to serialInt3)
+*------------------------------------------------------
+        DORG >1000              ; RAM start
+OSWP    BSS  32                 ; OS workspace (16 words)
+
+TCBS                            ; Start of TCB Table
+        BSS  6                  ; WP,PC,ST — Task 1
+        BSS  6                  ; WP,PC,ST — Task 2
+TCBE                            ; End of TCB Table
+
+TCUR    BSS  2                  ; Pointer to TCB for current task
+
+M0TXP   BSS  2                  ; Mux 0 TX Pointer
+M0RXD   BSS  2                  ; Mux 0 RX Byte
+M1TXP   BSS  2                  ; Mux 1 TX Pointer
+M1RXD   BSS  2                  ; Mux 1 RX Byte
+
+INDENT  BSS  2                  ; Current indent level (0..MAX_INDENT)
+IDIR    BSS  2                  ; Direction: 0=increasing, 1=decreasing
+
+*------------------------------------------------------
+*        ROM Start — vectors and init (identical to serialInt3)
+*------------------------------------------------------
+        AORG >0000              ; Reset Vector
+        DATA OSWP               ;   OS workspace addr
+        DATA INIT               ;   Init code
+
+M0IRQV  AORG M0IRQ * 4
+        DATA OSWP
+        DATA MUX0ISR
+
+M1IRQV  AORG M1IRQ * 4
+        DATA OSWP
+        DATA MUX1ISR
+
+TIMERV  AORG TMRIRQ * 4        ; Timer Vector
+        DATA OSWP               ;   OS Workspace
+        DATA TIMERISR           ;   Scheduler code
+
+        AORG >0100
+INITDATA                        ; Initial Ram Values
+        DATA T1RAM,TOP1,>0008   ; Task 1 TCB
+        DATA T2RAM,TOP2,>0008   ; Task 2 TCB
+INITEND
+
+INIT
+        LI   R0,INITDATA        ; Copy TCBs from ROM to RAM
+        LI   R1,TCBS
+        LI   R2,(INITEND-INITDATA)/2
+COPYD   MOV  *R0+,*R1+
+        DEC  R2
+        JNE  COPYD
+
+                                ; Load and run Task 1
+        LI   R1,TCBS            ; Set the first task as the "next" to run
+        JMP  RES                ; Jump straight to resume it!
+
+*------------------------------------------------------
+* TIMERISR — round-robin scheduler (identical to serialInt3)
+*------------------------------------------------------
+TIMERISR
+        LIMI 0                  ; INT OFF
+        CLR  @TMRRST            ; MMIO Write to clear timer interrupt
+
+        MOV  @TCUR,R0           ; Load current TCB address to R0
+        MOV  R0,R1              ; Copy to R1...
+        AI   R1,>6              ; ...and increment to next TCB
+
+                                ; Loop back around to the first task
+        CI   R1,TCBE            ; If next task is NOT past end of TCB Table
+        JNE  SWAP               ;   THEN goto SWAP
+        LI   R1,TCBS            ;   ELSE set it to the first one
+SWAP
+
+SUS                             ; Suspend task to TCB in R0
+        MOV  R13,*R0+           ; Save context to TCB
+        MOV  R14,*R0+
+        MOV  R15,*R0+
+RES                             ; Resume task from TCB in R1
+        MOV  R1,@TCUR           ; Save as current task
+        MOV  *R1+,R13           ; Restore context from TCB
+        MOV  *R1+,R14
+        MOV  *R1+,R15
+        RTWP
+
+*------------------------------------------------------
+* MUX ISRs (identical to serialInt3)
+*------------------------------------------------------
+MUX0ISR
+        LIMI 0
+        LI   R4,M0TXP
+        LI   R1,M0STAT
+        JMP  MUXTX
+
+MUX1ISR
+        LIMI 0
+        LI   R4,M1TXP
+        LI   R1,M1STAT
+
+MUXTX
+        MOV  *R1,R3             ; Load mux status
+        CLR  @6(R1)             ; Clear IRQ
+        MOV  R3,R2
+        ANDI R2,>0001           ; Transmit busy?
+        JNE  MUXRX              ; If so go to RX
+                                ; Ready to transmit
+        MOV  *R4,R2             ; Load TX Pointer
+        JEQ  MUXRX              ; Nothing to transmit? goto RX
+        MOVB *R2+,R5            ; Load transmit data and increment pointer
+        JEQ  DONE               ; Null? done!
+        MOVB R5,@5(R1)          ; Transmit
+        MOV  R2,*R4             ; Store incremented pointer
+        JMP  MUXRX
+DONE
+        CLR  *R4                ; Clear transmit pointer
+MUXRX
+        MOV  R3,R2
+        ANDI R2,>0002           ; Byte received?
+        JNE  RET                ; bit1=1 → no data, return
+        MOV  @2(R1),@2(R4)
+RET     RTWP
+
+
+*------------------------------------------------------
+*        Task 1 — zigzag HELLORLD! on UART0
+*------------------------------------------------------
+        DORG >2000
+T1RAM   BSS  32                 ; Task 1 workspace
+
+        AORG >0200
+
+TOP1
+*-- compute M0TXP = OUTBUF + (MAX_INDENT - INDENT)
+        LI   R2,MAX_INDENT
+        S    @INDENT,R2         ; R2 = MAX_INDENT - INDENT
+        LI   R3,OUTBUF
+        A    R2,R3              ; R3 = OUTBUF + (MAX_INDENT - INDENT)
+        MOV  R3,@M0TXP
+        BLWP @M0IRQV            ; trigger transmit
+
+LOOP1                           ; Wait for tx to complete
+        BLWP @TIMERV            ; yield
+        MOV  @M0TXP,R2          ; Load data pointer
+        JNE  LOOP1              ; if not zero yet, keep waiting
+
+*-- update zigzag: bounce INDENT between 0 and MAX_INDENT
+        MOV  @IDIR,R2
+        JNE  ZDECR              ; IDIR=1 → decrementing
+
+ZINCR
+        INC  @INDENT            ; INDENT++
+        MOV  @INDENT,R2
+        CI   R2,MAX_INDENT      ; reached max?
+        JNE  TOP1               ; no — transmit next
+        LI   R2,1
+        MOV  R2,@IDIR           ; yes — switch to decrementing
+        JMP  TOP1
+
+ZDECR
+        DEC  @INDENT            ; INDENT--
+        MOV  @INDENT,R2
+        JNE  TOP1               ; not at zero yet
+        CLR  @IDIR              ; back to incrementing
+        JMP  TOP1
+
+*-- ROM string: MAX_INDENT spaces followed by message
+OUTBUF  TEXT "          HELLORLD!"
+        BYTE 13,10,0
+
+
+*------------------------------------------------------
+*        Task 2 — UART1 banner + echo (identical to serialInt3)
+*------------------------------------------------------
+        DORG >3000
+T2RAM   BSS  32                 ; Task 2 workspace
+T2BUF   BSS  2
+
+        AORG >0300
+TOP2    LI   R2,STR2            ; Store the text address
+        MOV  R2,@M1TXP
+        BLWP @M1IRQV            ; trigger transmit
+
+LOOP2                           ; Wait for RX Byte
+        BLWP @TIMERV            ; yield
+        MOV  @M1RXD,R9          ; Load RX Byte
+        JEQ  LOOP2              ; If zero loop
+
+        CLR  @T2BUF             ; Clear transmit buf
+        MOVB @M1RXD+1,@T2BUF   ; Move rx byte into transmit buf
+                                ; Note second byte of word is the null
+        CLR  @M1RXD             ; Clear receive byte
+
+        LI   R2,T2BUF           ; Store the text address
+        MOV  R2,@M1TXP
+        BLWP @M1IRQV            ; trigger transmit
+        JMP  LOOP2              ; Start over
+
+STR2    TEXT "Hello Packed String, Hello Interupt IO, this terminal echos..."
+        BYTE 13,10,0
+
+        END
