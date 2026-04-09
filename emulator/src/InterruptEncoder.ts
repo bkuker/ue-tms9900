@@ -37,8 +37,17 @@ export class InterruptEncoder {
         this.devices.sort((a, b) => a.getInterruptCode() - b.getInterruptCode());
     }
 
+    getCurrentInterrupts() {
+        const ret = new Array(16).fill(false);
+        for (const d of this.devices) {
+            if (d.isAssertingInterrupt())
+                ret[d.getInterruptCode()] = true;
+        }
+        return ret;
+    }
+
     getInterruptState(): number | false {
-        if ( !this.ena )
+        if (!this.ena)
             return false;
         //List is sorted descending, so return the highest
         for (const d of this.devices) {

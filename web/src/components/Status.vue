@@ -16,7 +16,8 @@
                 <dd>{{ cycles.toLocaleString() }}</dd>
                 <dd>{{ Math.floor(cps).toLocaleString() }} cps</dd>
                 <dt>Interrupts:</dt>
-                <dd><span v-if="int !== false">{{ int.toString(2).padStart(4, "0") }}</span><span v-else>none</span>
+                <dd class="interrupts">
+                    <span v-for="i,n in int" :class="{ active: i }">{{n.toString(16)}}</span>
                 </dd>
             </dl>
         </div>
@@ -78,7 +79,7 @@ function update() {
 
 
 
-        int.value = props.ue.intEnc.getInterruptState();
+        int.value = props.ue.intEnc.getCurrentInterrupts();
         let wpProfile = cpu.getWpProfile();
         let wpTotal = 0;
         for (const [wp, cycles] of Object.entries(wpProfile)) {
@@ -121,6 +122,16 @@ dt {
 dd {
     grid-column-start: 2;
     margin-bottom: 5px;
+}
+
+dd.interrupts {
+    color: #aaa;
+    font-family: monospace;
+}
+
+dd.interrupts .active {
+    color: #000;
+    font-weight: bolder;
 }
 
 dl.registers {
