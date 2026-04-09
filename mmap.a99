@@ -1,0 +1,32 @@
+;UE TMS9900 Homebrew MMIO
+
+;TAPE DRIVE MMIO
+;ADDRESSES TBD
+TAPEIRQ EQU >2
+
+;MUX 0 MMIO ADDRESSES
+M0STAT  EQU >F000                       ;Put THRE onto Data Bus 8, DR onto Data Bus 9
+M0RERD  EQU >F002                       ;Clear DR flag, connect Receiver Register to Data Bus[15:8]
+M0RX    EQU >F002                       ;   Read word, byte received in 8 LSB
+M0THL   EQU >F004                       ;Load Data Bus[15:8] into Transmitter Holding Register
+M0TX    EQU >F004                       ;   Write word, byte to send in 8 LSB
+M0RST   EQU >F006                       ;Reset the Priority Interrupt Flip Flop
+M0IRQ   EQU >3                          ;Mux0 IRQ
+
+;MUX 1 MMIO ADDRESSES
+M1STAT  EQU >F008                       ;Put THRE onto Data Bus 8, DR onto Data Bus 9
+M1RERD  EQU >F00A                       ;Clear DR flag, connect Receiver Register to Data Bus[15:8]
+M1RX    EQU >F00A                       ;   Read word, byte received in 8 LSB
+M1THL   EQU >F00C                       ;Load Data Bus[15:8] into Transmitter Holding Register
+M1TX    EQU >F00C                       ;   Write word, byte to send in 8 LSB
+M1RST   EQU >F00E                       ;Reset the Priority Interrupt Flip Flop
+M1IRQ   EQU >4                          ;Mux1 IRQ
+
+;TIMER MMIO ADDRESS
+TIRST   EQU >F010                       ;Reset Timer Interrupt Flip Flop
+TMRIRQ  EQU >5                          ;Timer IRQ
+
+;PARALLEL PORT MMIO ADDRESSES
+PRBUSY  EQU >F012                       ;Puts the printer busy signal onto Data Bus[8]
+PPRFD   EQU >F014                       ;Paper feed signal to feed paper through the printer
+PRSTRB  EQU >F016                       ;Load Data Bus[15:8] into buffer to print
