@@ -17,14 +17,8 @@ import { Log } from './util/log';
 import { InterruptEncoder, InterruptSource } from './InterruptEncoder';
 import { MemoryMapped } from './memory';
 
-//Offsets from baseaddr
-const MxSTAT = 0;
-const MxRX = 2;
-const MxTX = 4;
-const MxRST = 6;
-
-const StatTxBusy =  0b0000000000000001;
-const StatRXEmpty = 0b0000000000000010;
+const StatTxReadyToSend =  0b00000001_00000000;
+const StatRXDataReady = 0b00000010_00000000;
 
 export class UeUart implements InterruptSource, MemoryMapped {
     private log: Log = Log.getLog();
@@ -34,23 +28,20 @@ export class UeUart implements InterruptSource, MemoryMapped {
 
     private tData: number;
     private tReady: boolean;
-    private tReadyInterrupt: boolean;
+    private intFF: boolean;
 
-    private baseAddr: number;
-    private irq: number;
+    private muxInfo;
 
     private byteConsumer: (byte: number) => void;
 
-    constructor(baseAddr: number, irq: number, intEnc: InterruptEncoder) {
-        this.baseAddr = baseAddr;
-        this.irq = irq;
+    constructor(muxInfo, intEnc: InterruptEncoder) {
+        this.muxInfo = muxInfo;
 
         this.rData = 64;
         this.rReady = false;
         this.tData = 0;
         this.tReady = true;
-        this.tReadyInterrupt = false;
-
+        this.intFF = false;
 
         intEnc.registerInterruptSource(this);
 
@@ -62,6 +53,7 @@ export class UeUart implements InterruptSource, MemoryMapped {
             return false;
         this.rData = byte;
         this.rReady = true;
+        this.intFF = true;
         return true;
     }
 
@@ -70,7 +62,7 @@ export class UeUart implements InterruptSource, MemoryMapped {
     }
 
     public getBaseAddress() {
-        return this.baseAddr;
+        return this.muxInfo.stat;
     };
 
     public getSize() {
@@ -78,22 +70,23 @@ export class UeUart implements InterruptSource, MemoryMapped {
     }
 
     getInterruptCode(): number {
-        return this.irq;
+        return this.muxInfo.irq;
     }
 
     isAssertingInterrupt(): boolean {
-        return this.rReady || this.tReadyInterrupt;
+        return this.intFF;
     }
 
     public readWord(addr: number): number {
-        if (addr == this.baseAddr + MxSTAT) {
+        if (addr == this.muxInfo.stat) {
             //Read status: bit 0 =  Transmit Busy, bit 1 = Data Received
-            return (this.tReady ? 0 : StatTxBusy) | (this.rReady ? 0 : StatRXEmpty);
-        } else if (addr == this.baseAddr + MxRX) {
+            return (this.tReady ? StatTxReadyToSend : 0) | (this.rReady ? StatRXDataReady : 0);
+        } else if (addr == this.muxInfo.rerd ) {
             //RRD Read the data
             if (!this.rReady)
                 this.log.warn("UART read when no data ready");
-            return this.rData;
+            this.rReady = false;
+            return this.rData << 8;
         } else {
             //Not weird for RMW for MOVB
             //this.log.warn("Weird UART read from address 0x" + addr.toString(16));
@@ -101,21 +94,18 @@ export class UeUart implements InterruptSource, MemoryMapped {
     }
 
     public writeWord(addr: number, w: number) {
-        if (addr == this.baseAddr + MxTX) {
+        if (addr == this.muxInfo.thl) {
             //THRL, load data to send
-            this.tData = w & 0xFF;
+            this.tData = w >> 8;
             //console.log("UART Write 0x" +this.tData.toString(16) + " " + String.fromCharCode(this.tData));
             setTimeout(() => {
                 this.byteConsumer(this.tData);
                 this.tReady = true;
-                this.tReadyInterrupt = true;
+                this.intFF = true;
             }, 4);
             this.tReady = false;
-        } else if (addr == this.baseAddr + MxRST) {
-            //DRR, reset data ready
-            //console.log("Clear DDR")
-            this.rReady = false;
-            this.tReadyInterrupt = false;
+        } else if (addr == this.muxInfo.rst ) {
+            this.intFF = false;
         } else {
             this.log.warn("Weird UART write " + w + " to address 0x" + addr.toString(16));
         }
